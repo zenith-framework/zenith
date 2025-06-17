@@ -30,6 +30,8 @@ zenith.with(ZenithWebSystem); // Optional if you don't want to use web server fe
 await zenith.start();
 ```
 
+## Install & running examples
+
 To install dependencies:
 
 ```bash
