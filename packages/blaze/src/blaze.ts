@@ -1,6 +1,5 @@
-import { Zenith } from "@zenith/core"
+import { Zenith, zenithLogger } from "@zenith/core"
 import { ZenithWebSystem } from "@zenith/web";
-import { zenithLogger } from "../../core/src/logger";
 
 const logger = zenithLogger('Blaze');
 
