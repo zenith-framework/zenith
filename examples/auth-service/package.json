@@ -1,0 +1,19 @@
+{
+    "name": "@examples/auth-service",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "start": "bun run src/index.ts"
+    },
+    "dependencies": {
+        "@zenith/core": "workspace:../../packages/core",
+        "@zenith/web": "workspace:../../packages/web",
+        "@zenith/blaze": "workspace:../../packages/blaze",
+        "class-validator": "^0.14.2",
+        "drizzle-orm": "^0.44.2",
+        "luxon": "^3.6.1"
+    },
+    "devDependencies": {
+        "@types/luxon": "^3.6.2"
+    }
+}
