@@ -1,7 +1,7 @@
 import { Orb } from "@zenith/core";
 import { TodoRepository } from "../repositories/todo.repository";
 
-@Orb
+@Orb()
 export class TodoService {
     private todos: string[] = [];
     constructor(private readonly todoRepository: TodoRepository) {

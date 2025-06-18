@@ -1,7 +1,7 @@
 import { Orb } from "@zenith/core";
 
 
-@Orb
+@Orb()
 export class TodoRepository {
     constructor() {
     }
