@@ -5,6 +5,7 @@ import type { RouteParamMetadata } from "../decorators/http/route-param";
 import { ZENITH_CONTROLLER_PATH, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS } from "../decorators/metadata-keys";
 import { InjectOrb, Orb, OrbContainer } from "@zenith/core";
 import { ZenithWebConfig } from "../config/zenith-web.config";
+import { sanitizePath } from "../utils/path.utils";
 
 @Orb()
 export class HttpServer {
@@ -23,13 +24,14 @@ export class HttpServer {
         const controllers = this.container.getOrbsByType<any>('CONTROLLER');
         for (const controller of controllers) {
             const controllerInstance = controller.getInstance();
-            const controllerDefaultPath = Reflect.getMetadata(ZENITH_CONTROLLER_PATH, controller.type);
+            const controllerDefaultPath = sanitizePath(Reflect.getMetadata(ZENITH_CONTROLLER_PATH, controller.type));
             const routes = Object.getOwnPropertyNames(Object.getPrototypeOf(controller.getInstance())).filter((key) => key !== 'constructor');
 
             for (const route of routes) {
                 const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controller.getInstance(), route) as Route;
+                const routePath = sanitizePath(routeMetadata.path);
 
-                const fullPath = [controllerDefaultPath.startsWith('/') ? controllerDefaultPath : `/${controllerDefaultPath}`, routeMetadata.path].join('/');
+                const fullPath = [controllerDefaultPath.startsWith('/') ? controllerDefaultPath : `/${controllerDefaultPath}`, routePath].join('/');
 
                 const existingHandlers = this.routeHandlers[fullPath] || {} as Record<RouteMethod, (...args: any[]) => any>;
                 existingHandlers[routeMetadata.method] = (req: BunRequest) => this.handleRequest(req, controllerInstance, route);

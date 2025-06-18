@@ -6,7 +6,7 @@ export class ModuleLoader {
 
     async scan(root: string): Promise<ZenithModule[]> {
         const dirEntries = fs.readdirSync(root, { withFileTypes: true, recursive: true })
-            .filter(dirEntry => dirEntry.name !== 'index.ts' || dirEntry.parentPath !== root);
+            .filter(dirEntry => (dirEntry.name !== 'index.ts' || dirEntry.parentPath !== root) && !dirEntry.name.includes('.spec.ts'));
 
         for (const dirEntry of dirEntries) {
             if (dirEntry.isFile()) {
