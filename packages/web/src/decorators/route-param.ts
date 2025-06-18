@@ -1,4 +1,4 @@
-import { ZENITH_CONTROLLER_ROUTE_ARGS } from "../../decorators/metadata-keys";
+import { ZENITH_CONTROLLER_ROUTE_ARGS } from "./metadata-keys";
 
 export interface RouteParamMetadata {
     type: 'route' | 'body';

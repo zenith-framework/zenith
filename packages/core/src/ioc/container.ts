@@ -1,5 +1,5 @@
 import { ZENITH_ORB_INJECT_NAME, ZENITH_ORB_INJECT_OPTIONS, ZENITH_ORB_PROVIDE, ZENITH_ORB_TYPE } from "../decorators/metadata-keys";
-import { Orb } from "./orb";
+import { OrbWrapper } from "./orb-wrapper";
 import type { ZenithModule } from "../zenith-module";
 import { zenithLogger } from "../logger";
 import type { InjectOrbOptions } from "../decorators";
@@ -7,8 +7,8 @@ import { CyclicDependencyError } from "./cyclic-dependencies.error";
 
 export class OrbContainer {
   private readonly logger = zenithLogger('OrbContainer');
-  private readonly orbs: Map<string, Orb<any>>;
-  private readonly orbsByType: Map<string, Orb<any>[]>;
+  private readonly orbs: Map<string, OrbWrapper<any>>;
+  private readonly orbsByType: Map<string, OrbWrapper<any>[]>;
 
   constructor() {
     this.orbs = new Map();
@@ -20,14 +20,14 @@ export class OrbContainer {
     if (!orbName) {
       throw new Error('Cannot register orb without a name')
     }
-    let orb: Orb<any> | undefined;
+    let orb: OrbWrapper<any> | undefined;
 
     if (orbRaw instanceof Function) {
       const dependencies = Reflect.getMetadata('design:paramtypes', orbRaw) as (any[] | undefined) ?? [];
       const dependenciesNames = dependencies.map((dependency, index) => this.getInjectableOrbName(dependency, index));
-      orb = new Orb<typeof orbRaw>(orbName, orbRaw, dependenciesNames, null);
+      orb = new OrbWrapper<typeof orbRaw>(orbName, orbRaw, dependenciesNames, null);
     } else {
-      orb = new Orb<T>(orbName, orbRaw, [], orbRaw);
+      orb = new OrbWrapper<T>(orbName, orbRaw, [], orbRaw);
     }
 
     this.orbs.set(orb.name, orb);
@@ -101,7 +101,7 @@ export class OrbContainer {
     }
   }
 
-  getOrbsByType<T>(type: string): Orb<T>[] {
+  getOrbsByType<T>(type: string): OrbWrapper<T>[] {
     return this.orbsByType.get(type) ?? [];
   }
 
@@ -122,7 +122,7 @@ export class OrbContainer {
       if (!name) {
         throw new Error(`Cannot inject parameter ${index} of orb ${orbRaw.name}`);
       }
-      const orb = this.get(name) as Orb<typeof parameter>;
+      const orb = this.get(name) as OrbWrapper<typeof parameter>;
       if (!orb && !options.allowAbsent) {
         throw new Error(`Orb ${name} not found`);
       }

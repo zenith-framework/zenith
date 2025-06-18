@@ -1,4 +1,4 @@
-export class Orb<T> {
+export class OrbWrapper<T> {
     private instance: T | null;
 
     constructor(public name: string, public type: T, public readonly dependencies: string[], instance: T | null) {

@@ -1,10 +1,10 @@
 export * from './config/zenith-web.config';
 export * from './config/default-zenith-web.config';
 
-export * from './decorators/http/http-methods';
-export * from './decorators/http/route-param';
+export * from './decorators/http-method.decorator';
+export * from './decorators/route-param';
 export * from './decorators/register-route';
-export * from './decorators/controller';
+export * from './decorators/controller.decorator';
 
 export * from './web/http-server';
 export * from './web/route';

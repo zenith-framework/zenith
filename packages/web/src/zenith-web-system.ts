@@ -13,6 +13,7 @@ export class ZenithWebSystem implements ZenithSystem {
 
     async onStart(): Promise<void> {
         this.httpServer = this.container.get(HttpServer)!;
+        await this.httpServer.registerMiddlewares();
         await this.httpServer.registerRoutes();
         await this.httpServer.start();
     }
