@@ -1,6 +1,6 @@
 import { serve, type BunRequest, type Server } from "bun";
 import { zenithLogger } from "../../../core/src/logger";
-import type { Route } from "./route";
+import type { Route, RouteMethod } from "./route";
 import type { RouteParamMetadata } from "../decorators/http/route-param";
 import { ZENITH_CONTROLLER_PATH, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS } from "../decorators/metadata-keys";
 import { InjectOrb, Orb, OrbContainer } from "@zenith/core";
@@ -9,7 +9,7 @@ import { ZenithWebConfig } from "../config/zenith-web.config";
 @Orb()
 export class HttpServer {
     private readonly logger = zenithLogger('HttpServer');
-    private readonly routeHandlers: Record<string, Record<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'OPTIONS' | 'HEAD', (...args: any[]) => any>> = {};
+    private readonly routeHandlers: Record<string, Record<RouteMethod, (...args: any[]) => any>> = {};
     private server?: Server;
 
     constructor(
@@ -31,7 +31,7 @@ export class HttpServer {
 
                 const fullPath = [controllerDefaultPath.startsWith('/') ? controllerDefaultPath : `/${controllerDefaultPath}`, routeMetadata.path].join('/');
 
-                const existingHandlers = this.routeHandlers[fullPath] || {} as Record<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'OPTIONS' | 'HEAD', (...args: any[]) => any>;
+                const existingHandlers = this.routeHandlers[fullPath] || {} as Record<RouteMethod, (...args: any[]) => any>;
                 existingHandlers[routeMetadata.method] = (req: BunRequest) => this.handleRequest(req, controllerInstance, route);
 
                 this.routeHandlers[fullPath] = existingHandlers;
@@ -62,6 +62,7 @@ export class HttpServer {
         }
 
         try {
+            // TODO: add middleware support
             const result = await controller[handler].bind(controller)(...injectedArgs);
 
             // TODO: handle response encoding

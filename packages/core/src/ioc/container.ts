@@ -25,17 +25,18 @@ export class OrbContainer {
       const dependencies = Reflect.getMetadata('design:paramtypes', orbRaw) as (any[] | undefined) ?? [];
       const dependenciesNames = dependencies.map((dependency, index) => this.getInjectableOrbName(dependency, index));
       orb = new Orb<typeof orbRaw>(orbName, orbRaw, dependenciesNames, null);
-      const type = Reflect.getMetadata(ZENITH_ORB_TYPE, orbRaw);
-      if (type) {
-        const orbs = this.orbsByType.get(type) ?? [];
-        orbs.push(orb);
-        this.orbsByType.set(type, orbs);
-      }
     } else {
       orb = new Orb<T>(orbName, orbRaw, [], orbRaw);
     }
 
     this.orbs.set(orb.name, orb);
+
+    const type = Reflect.getMetadata(ZENITH_ORB_TYPE, typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor);
+    if (type) {
+      const orbs = this.orbsByType.get(type) ?? [];
+      orbs.push(orb);
+      this.orbsByType.set(type, orbs);
+    }
 
     this.logger.debug(`Registered \x1b[34m${orb.name}\x1b[0m`);
   }
@@ -49,7 +50,7 @@ export class OrbContainer {
 
     for (const orb of this.orbs.values()) {
       for (const dependency of orb.dependencies) {
-        indegrees.set(dependency, (indegrees.get(dependency) ?? 1) + 1);
+        indegrees.set(dependency, indegrees.get(dependency)! + 1);
       }
     }
 

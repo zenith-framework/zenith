@@ -39,6 +39,8 @@ export class Zenith {
     this.registerShutdownHooks();
 
     await this.startSystems();
+
+    this.logger.info(`All systems started`);
   }
 
   private async startSystems() {
