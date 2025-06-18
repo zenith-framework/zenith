@@ -3,6 +3,7 @@ import { Orb } from "./orb";
 import type { ZenithModule } from "../zenith-module";
 import { zenithLogger } from "../logger";
 import type { InjectOrbOptions } from "../decorators";
+import { CyclicDependencyError } from "./cyclic-dependencies.error";
 
 export class OrbContainer {
   private readonly logger = zenithLogger('OrbContainer');
@@ -79,13 +80,24 @@ export class OrbContainer {
     }
 
     while (topologicalSortedOrbs.length > 0) {
-      const orb = this.orbs.get(topologicalSortedOrbs.pop()!)!;
+
+      const orb = this.orbs.get(topologicalSortedOrbs.at(topologicalSortedOrbs.length - 1)!)!;
       if (orb.getInstance()) {
         continue;
       }
 
-      const instance = this.provideInstance(orb.type);
-      orb.setInstance(instance);
+      try {
+        const instance = this.provideInstance(orb.type);
+        orb.setInstance(instance);
+        topologicalSortedOrbs.pop();
+      } catch (error) {
+        break;
+      }
+    }
+
+    if (topologicalSortedOrbs.length > 0) {
+      this.logger.error(`Cyclic dependency detected: ${topologicalSortedOrbs.join(' -> ')}`);
+      throw new CyclicDependencyError(topologicalSortedOrbs);
     }
   }
 

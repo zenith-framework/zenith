@@ -27,18 +27,24 @@ export class Zenith {
   async start() {
     this.logger.info("Starting Zenith");
 
-    // Always register the container first
-    this.container.registerOrb(this.container, { name: 'OrbContainer' });
+    try {
+      // Always register the container first
+      this.container.registerOrb(this.container, { name: 'OrbContainer' });
 
-    await this.prepareSystems();
 
-    const modules = await this.moduleLoader.scan(this.rootDir);
-    this.container.registerModules(modules);
-    this.container.instanciateOrbs();
+      await this.prepareSystems();
 
-    this.registerShutdownHooks();
+      const modules = await this.moduleLoader.scan(this.rootDir);
+      this.container.registerModules(modules);
+      this.container.instanciateOrbs();
 
-    await this.startSystems();
+      this.registerShutdownHooks();
+
+      await this.startSystems();
+    } catch {
+      this.logger.error('Could not start Zenith, see errors above');
+      process.exit(1);
+    }
 
     this.logger.info(`All systems started`);
   }
