@@ -59,7 +59,7 @@ export class HttpServer {
                 const fullPath = [controllerDefaultPath.startsWith('/') ? controllerDefaultPath : `/${controllerDefaultPath}`, routePath].join('/');
 
                 const existingHandlers = this.routeHandlers[fullPath] || {} as Record<RouteMethod, (...args: any[]) => any>;
-                existingHandlers[routeMetadata.method] = (req: BunRequest) => this.handleRequest(req, controllerInstance, route);
+                existingHandlers[routeMetadata.method] = (req: BunRequest) => this.handleRequest(req, fullPath, controllerInstance, route);
 
                 this.routeHandlers[fullPath] = existingHandlers;
                 this.logger.info(`Registered route: ${routeMetadata.method} ${fullPath} (${controller.type.name}.${route})`);
@@ -67,7 +67,7 @@ export class HttpServer {
         }
     }
 
-    async handleRequest(req: BunRequest, controller: any, handler: string) {
+    async handleRequest(req: BunRequest, path: string, controller: any, handler: string) {
         const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controller, handler) as Route;
         const routeArgsMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, controller, handler) as RouteParamMetadata[];
 
@@ -101,6 +101,11 @@ export class HttpServer {
             // TODO: handle specific status codes
             status = 200;
         } catch (error) {
+            if (error instanceof Error) {
+                this.logger.error(`${routeMetadata.method} \x1b[31m${path}\x1b[0m: ${error.constructor.name}`);
+            } else {
+                this.logger.error(`${routeMetadata.method} \x1b[31m${path}\x1b[0m: ${error}`);
+            }
             payload = { error: 'Internal server error' };
             status = 500;
         }
