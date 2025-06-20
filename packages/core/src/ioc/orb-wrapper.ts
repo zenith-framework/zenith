@@ -1,10 +1,7 @@
 export class OrbWrapper<T> {
     private instance: T | null;
 
-    constructor(public name: string, public type: T, public readonly dependencies: string[], instance: T | null) {
-        this.name = name;
-        this.type = type;
-        this.dependencies = dependencies;
+    constructor(public name: string, public type: string, public value: T, public readonly dependencies: string[], instance: T | null) {
         this.instance = instance;
     }
 

@@ -2,7 +2,7 @@ import { serve, type BunRequest, type Server } from "bun";
 import { zenithLogger } from "../../../core/src/logger";
 import type { Route, RouteMethod } from "./route";
 import type { RouteParamMetadata } from "../decorators/route-param";
-import { ZENITH_CONTROLLER_PATH, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS, ZENITH_MIME_TYPES, ZENITH_REQUEST_DECODER, ZENITH_RESPONSE_ENCODER } from "../decorators/metadata-keys";
+import { ZENITH_CONTROLLER_PATH, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS, ZENITH_MIME_TYPES, ZENITH_ORB_TYPE_CONTROLLER, ZENITH_ORB_TYPE_REQUEST_DECODER, ZENITH_ORB_TYPE_RESPONSE_ENCODER } from "../decorators/metadata-keys";
 import { InjectOrb, Orb, OrbContainer, type OrbWrapper } from "@zenith/core";
 import { ZenithWebConfig } from "../config/zenith-web.config";
 import { sanitizePath } from "../utils/path.utils";
@@ -24,19 +24,19 @@ export class HttpServer {
     }
 
     async registerMiddlewares() {
-        const requestDecoders = this.container.getOrbsByType<RequestDecoder>(ZENITH_REQUEST_DECODER);
+        const requestDecoders = this.container.getOrbsByType<RequestDecoder>(ZENITH_ORB_TYPE_REQUEST_DECODER);
 
         for (const requestDecoder of requestDecoders) {
-            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, requestDecoder.type) as string[];
+            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, requestDecoder.value) as string[];
             for (const mimeType of mimeTypes) {
                 this.httpRequestDecoders.set(mimeType, requestDecoder);
             }
             this.logger.info(`Registering request decoder \x1b[32m${requestDecoder.name}\x1b[0m with mime types [\x1b[34m${mimeTypes.join(', ')}\x1b[0m]`);
         }
 
-        const responseEncoders = this.container.getOrbsByType<ResponseEncoder>(ZENITH_RESPONSE_ENCODER);
+        const responseEncoders = this.container.getOrbsByType<ResponseEncoder>(ZENITH_ORB_TYPE_RESPONSE_ENCODER);
         for (const responseEncoder of responseEncoders) {
-            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, responseEncoder.type) as string[];
+            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, responseEncoder.value) as string[];
             for (const mimeType of mimeTypes) {
                 this.httpResponseEncoders.set(mimeType, responseEncoder);
             }
@@ -46,10 +46,10 @@ export class HttpServer {
 
     async registerRoutes() {
         this.logger.info("Registering routes");
-        const controllers = this.container.getOrbsByType<any>('CONTROLLER');
+        const controllers = this.container.getOrbsByType<any>(ZENITH_ORB_TYPE_CONTROLLER);
         for (const controller of controllers) {
             const controllerInstance = controller.getInstance();
-            const controllerDefaultPath = sanitizePath(Reflect.getMetadata(ZENITH_CONTROLLER_PATH, controller.type));
+            const controllerDefaultPath = sanitizePath(Reflect.getMetadata(ZENITH_CONTROLLER_PATH, controller.value));
             const routes = Object.getOwnPropertyNames(Object.getPrototypeOf(controller.getInstance())).filter((key) => key !== 'constructor');
 
             for (const route of routes) {
@@ -62,7 +62,7 @@ export class HttpServer {
                 existingHandlers[routeMetadata.method] = (req: BunRequest) => this.handleRequest(req, fullPath, controllerInstance, route);
 
                 this.routeHandlers[fullPath] = existingHandlers;
-                this.logger.info(`Registered route: ${routeMetadata.method} ${fullPath} (${controller.type.name}.${route})`);
+                this.logger.info(`Registered route: ${routeMetadata.method} ${fullPath} (${controller.value.name}.${route})`);
             }
         }
     }

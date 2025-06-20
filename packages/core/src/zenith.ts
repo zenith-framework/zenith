@@ -5,6 +5,7 @@ import { ModuleLoader } from "./module-loader";
 import { OrbContainer } from "./ioc/container";
 import path from 'path';
 import type { ZenithSystem } from './zenith-system';
+import { ZENITH_ORB_TYPE_CONFIG } from './decorators/metadata-keys';
 
 export class Zenith {
   private readonly logger = zenithLogger('Zenith');
@@ -37,6 +38,10 @@ export class Zenith {
       const modules = await this.moduleLoader.scan(this.rootDir);
       this.container.registerModules(modules);
       this.container.instanciateOrbs();
+
+      this.container.getOrbsByType(ZENITH_ORB_TYPE_CONFIG).forEach(orb => {
+        this.logger.info(`Registered config \x1b[34m${orb.name}\x1b[0m using \x1b[34m${(orb.value as any).name}\x1b[0m`);
+      });
 
       this.registerShutdownHooks();
 

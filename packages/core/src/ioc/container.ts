@@ -8,11 +8,9 @@ import { CyclicDependencyError } from "./cyclic-dependencies.error";
 export class OrbContainer {
   private readonly logger = zenithLogger('OrbContainer');
   private readonly orbs: Map<string, OrbWrapper<any>>;
-  private readonly orbsByType: Map<string, OrbWrapper<any>[]>;
 
   constructor() {
     this.orbs = new Map();
-    this.orbsByType = new Map();
   }
 
   registerOrb<T>(orbRaw: (new (...args: any[]) => T) | T, options: { name?: string } = {}) {
@@ -21,24 +19,17 @@ export class OrbContainer {
       throw new Error('Cannot register orb without a name')
     }
     let orb: OrbWrapper<any> | undefined;
+    const type = Reflect.getMetadata(ZENITH_ORB_TYPE, typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor);
 
     if (orbRaw instanceof Function) {
       const dependencies = Reflect.getMetadata('design:paramtypes', orbRaw) as (any[] | undefined) ?? [];
       const dependenciesNames = dependencies.map((dependency, index) => this.getInjectableOrbName(dependency, index));
-      orb = new OrbWrapper<typeof orbRaw>(orbName, orbRaw, dependenciesNames, null);
+      orb = new OrbWrapper<typeof orbRaw>(orbName, type, orbRaw, dependenciesNames, null);
     } else {
-      orb = new OrbWrapper<T>(orbName, orbRaw, [], orbRaw);
+      orb = new OrbWrapper<T>(orbName, type, orbRaw, [], orbRaw);
     }
 
     this.orbs.set(orb.name, orb);
-
-    const type = Reflect.getMetadata(ZENITH_ORB_TYPE, typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor);
-    if (type) {
-      const orbs = this.orbsByType.get(type) ?? [];
-      orbs.push(orb);
-      this.orbsByType.set(type, orbs);
-    }
-
     this.logger.debug(`Registered \x1b[34m${orb.name}\x1b[0m`);
   }
 
@@ -87,7 +78,7 @@ export class OrbContainer {
       }
 
       try {
-        const instance = this.provideInstance(orb.type);
+        const instance = this.provideInstance(orb.value);
         orb.setInstance(instance);
         topologicalSortedOrbs.pop();
       } catch (error) {
@@ -102,7 +93,7 @@ export class OrbContainer {
   }
 
   getOrbsByType<T>(type: string): OrbWrapper<T>[] {
-    return this.orbsByType.get(type) ?? [];
+    return Array.from(this.orbs.values()).filter(orb => orb.type === type) as OrbWrapper<T>[];
   }
 
   private getInjectableOrbName<T>(orbRaw: (new (...args: any[]) => T) | T, index?: number): string {

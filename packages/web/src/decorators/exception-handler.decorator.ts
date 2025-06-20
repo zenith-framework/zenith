@@ -9,9 +9,9 @@
  */
 
 export const ExceptionHandler = (target: any) => {
-    console.log('ExceptionHandler', target);
+    // console.log('ExceptionHandler', target);
 };
 
 export const Catch = (exception: Function) => (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-    console.log('Catch', exception, target, propertyKey, descriptor);
+    // console.log('Catch', exception, target, propertyKey, descriptor);
 };
