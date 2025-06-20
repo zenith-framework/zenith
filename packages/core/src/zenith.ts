@@ -46,8 +46,8 @@ export class Zenith {
       this.registerShutdownHooks();
 
       await this.startSystems();
-    } catch {
-      this.logger.error('Could not start Zenith, see errors above');
+    } catch (error) {
+      this.logger.error('Could not start Zenith:', error);
       process.exit(1);
     }
 

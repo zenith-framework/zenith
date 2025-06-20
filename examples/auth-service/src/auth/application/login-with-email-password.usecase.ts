@@ -6,7 +6,7 @@ import { SessionCreator } from '../domain/session-creator';
 import { BadCredentialsError } from '../domain/errors/bad-credentials.error';
 import type { LoginWithEmailPasswordCommand } from './command/login-with-email-password.command';
 import type { LoginWithEmailPasswordResult } from './result/login-with-email-password.result';
-import { Orb } from '@zenith/core';
+import { Orb } from '@zenith-framework/core';
 
 @Orb()
 export class LoginWithEmailPasswordUseCase {

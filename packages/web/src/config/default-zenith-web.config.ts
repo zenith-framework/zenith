@@ -1,4 +1,4 @@
-import { Config } from "@zenith/core";
+import { Config } from "@zenith-framework/core";
 import type { ZenithWebConfig } from "./zenith-web.config";
 
 @Config('ZenithWebConfig')

@@ -3,7 +3,7 @@
 import { sessionTable } from '../../../db/schema';
 import { SessionRepository } from '../../domain/session.repository';
 import { Session } from '../../domain/entities/session';
-import { Orb } from '@zenith/core';
+import { Orb } from '@zenith-framework/core';
 
 @Orb('SessionRepository')
 export class SessionPostgresRepository implements SessionRepository {

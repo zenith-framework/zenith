@@ -1,9 +1,18 @@
 {
-  "name": "@zenith/core",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@zenith-framework/core",
+  "author": "Yann KAISER <yann.kaiser68@gmail.com>",
+  "license": "MIT",
+  "description": "Zenith Framework (@core)",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "0.1.2",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.2",
+    "winston": "^3.17.0"
   }
 }

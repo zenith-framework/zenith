@@ -3,7 +3,7 @@ import { zenithLogger } from "../../../core/src/logger";
 import type { Route, RouteMethod } from "./route";
 import type { RouteParamMetadata } from "../decorators/route-param";
 import { ZENITH_CONTROLLER_PATH, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS, ZENITH_MIME_TYPES, ZENITH_ORB_TYPE_CONTROLLER, ZENITH_ORB_TYPE_REQUEST_DECODER, ZENITH_ORB_TYPE_RESPONSE_ENCODER } from "../decorators/metadata-keys";
-import { InjectOrb, Orb, OrbContainer, type OrbWrapper } from "@zenith/core";
+import { InjectOrb, Orb, OrbContainer, type OrbWrapper } from "@zenith-framework/core";
 import { ZenithWebConfig } from "../config/zenith-web.config";
 import { sanitizePath } from "../utils/path.utils";
 import type { RequestDecoder } from "./request-decoder";

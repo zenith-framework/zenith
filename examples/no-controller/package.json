@@ -1,0 +1,19 @@
+{
+    "name": "@examples/no-controller",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "start": "bun run src/index.ts"
+    },
+    "dependencies": {
+        "@zenith-framework/core": "0.1.2",
+        "@zenith-framework/web": "0.1.5",
+        "@zenith-framework/blaze": "0.1.7",
+        "class-validator": "^0.14.2",
+        "drizzle-orm": "^0.44.2",
+        "luxon": "^3.6.1"
+    },
+    "devDependencies": {
+        "@types/luxon": "^3.6.2"
+    }
+}

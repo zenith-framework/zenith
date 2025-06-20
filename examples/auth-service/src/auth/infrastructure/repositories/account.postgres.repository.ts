@@ -4,7 +4,7 @@
 import { AccountRepository } from '../../domain/account.repository';
 import { Account } from '../../domain/entities/account';
 import { accountTable } from '../../../db/schema';
-import { Orb } from '@zenith/core';
+import { Orb } from '@zenith-framework/core';
 
 @Orb('AccountRepository')
 export class AccountPostgresRepository implements AccountRepository {

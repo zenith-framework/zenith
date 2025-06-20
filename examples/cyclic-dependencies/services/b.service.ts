@@ -1,4 +1,4 @@
-import { InjectOrb, Orb } from "@zenith/core";
+import { InjectOrb, Orb } from "@zenith-framework/core";
 import type { BaseService } from "./base.service";
 
 @Orb('BService')

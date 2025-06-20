@@ -8,7 +8,7 @@ import { Account } from '../domain/entities/account';
 import type { SignUpWithEmailPasswordCommand } from './command/sign-up-with-email-password.command';
 import type { SignUpWithEmailPasswordResult } from './result/sign-up-with-email-password.result';
 import { SessionCreator } from '../domain/session-creator';
-import { Orb } from '@zenith/core';
+import { Orb } from '@zenith-framework/core';
 
 @Orb()
 export class SignUpWithEmailPasswordUseCase {

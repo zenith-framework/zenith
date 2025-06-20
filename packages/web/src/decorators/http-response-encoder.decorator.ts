@@ -1,4 +1,4 @@
-import { Orb, setOrbType } from "@zenith/core";
+import { Orb, setOrbType } from "@zenith-framework/core";
 import { ZENITH_MIME_TYPES, ZENITH_ORB_TYPE_RESPONSE_ENCODER } from "./metadata-keys";
 
 export const HttpResponseEncoder = (mimeTypes: string[]) => {

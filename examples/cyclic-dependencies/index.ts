@@ -1,4 +1,4 @@
-import { Zenith } from '@zenith/core';
+import { Zenith } from '@zenith-framework/core';
 import { ZenithWebSystem } from '@zenith/web';
 
 const zenith = new Zenith();

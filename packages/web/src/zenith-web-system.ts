@@ -1,6 +1,6 @@
-import type { ZenithSystem } from "@zenith/core";
+import type { ZenithSystem } from "@zenith-framework/core";
 import { HttpServer } from "./web/http-server";
-import { OrbContainer } from "@zenith/core";
+import { OrbContainer } from "@zenith-framework/core";
 
 export class ZenithWebSystem implements ZenithSystem {
     private container!: OrbContainer;

@@ -4,7 +4,7 @@ import { accountTable, userTable } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
 // import { TransactionHost } from '@nestjs-cls/transactional';
 // import { DrizzleAdapter } from '../../../db';
-import { Orb } from '@zenith/core';
+import { Orb } from '@zenith-framework/core';
 
 @Orb('UserRepository')
 export class UserPostgresRepository implements UserRepository {

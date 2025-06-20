@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from 'crypto';
 import { User } from './entities/user';
 import { DateTime, Duration } from 'luxon';
 import { SessionRepository } from './session.repository';
-import { Orb } from '@zenith/core';
+import { Orb } from '@zenith-framework/core';
 
 // TODO: Move to an external config (env vars ?)
 export const SESSION_EXPIRATION_TIME_MS = 1000 * 60 * 60 * 24 * 7;

@@ -1,12 +1,17 @@
 {
-  "name": "@zenith/web",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@zenith-framework/web",
+  "author": "Yann KAISER <yann.kaiser68@gmail.com>",
+  "license": "MIT",
+  "description": "Zenith Framework (@web) - Web server capabilities (HTTP)",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "0.1.5",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@zenith/core": "workspace:*"
+    "@zenith-framework/core": "0.1.2"
   }
 }

@@ -1,4 +1,4 @@
-import { Orb } from "@zenith/core";
+import { Orb } from "@zenith-framework/core";
 
 
 @Orb()

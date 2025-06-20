@@ -1,4 +1,4 @@
-import { Orb } from "@zenith/core";
+import { Orb } from "@zenith-framework/core";
 import { TodoRepository } from "../repositories/todo.repository";
 
 @Orb()
