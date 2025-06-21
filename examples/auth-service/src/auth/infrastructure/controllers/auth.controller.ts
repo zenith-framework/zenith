@@ -5,21 +5,21 @@ import { SignUpWithEmailPasswordUseCase } from '../../application/sign-up-with-e
 import { LoginWithEmailPasswordRequest } from './request/login-with-email-password.request';
 import { SignUpWithEmailPasswordRequest } from './request/sign-up-with-email-password.request';
 
-@Controller('auth')
+@Controller('/auth')
 export class AuthController {
   constructor(
     private readonly signUpWithEmailPasswordUseCase: SignUpWithEmailPasswordUseCase,
     private readonly loginUserUseCase: LoginWithEmailPasswordUseCase,
   ) { }
 
-  @Post('sign-up')
+  @Post('/sign-up')
   async signUp(
     @Body() command: SignUpWithEmailPasswordRequest,
   ): Promise<SignUpWithEmailPasswordResult> {
     return await this.signUpWithEmailPasswordUseCase.execute(command);
   }
 
-  @Post('login')
+  @Post('/login')
   async login(@Body() command: LoginWithEmailPasswordRequest) {
     return await this.loginUserUseCase.execute(command);
   }

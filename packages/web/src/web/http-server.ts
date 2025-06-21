@@ -56,7 +56,10 @@ export class HttpServer {
                 const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controller.getInstance(), route) as Route;
                 const routePath = sanitizePath(routeMetadata.path);
 
-                const fullPath = [controllerDefaultPath.startsWith('/') ? controllerDefaultPath : `/${controllerDefaultPath}`, routePath].join('/');
+                let fullPath: string = '/' + controllerDefaultPath;
+                if (routePath && routePath !== '') {
+                    fullPath += '/' + routePath;
+                }
 
                 const existingHandlers = this.routeHandlers[fullPath] || {} as Record<RouteMethod, (...args: any[]) => any>;
                 existingHandlers[routeMetadata.method] = (req: BunRequest) => this.handleRequest(req, fullPath, controllerInstance, route);
@@ -69,7 +72,7 @@ export class HttpServer {
 
     async handleRequest(req: BunRequest, path: string, controller: any, handler: string) {
         const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controller, handler) as Route;
-        const routeArgsMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, controller, handler) as RouteParamMetadata[];
+        const routeArgsMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, controller, handler) ?? [] as RouteParamMetadata[];
 
         const injectedArgs: any[] = [];
         for (const arg of routeArgsMetadata) {
