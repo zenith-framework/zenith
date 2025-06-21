@@ -1,12 +1,17 @@
 # Road to v1.0
 
 **Web:**
+- [ ] Query parameters
 - [ ] Middlewares
-- [ ] Request content type (other than JSON)
-    - [ ] JSON should be default
+- [ ] Request input Validation
+    - [ ] Body
+    - [ ] Query parameters
 - [ ] Guards
 - [ ] Request context (using ALS)
-- [ ] Exception handlers (mapping custom exception to http exception)
+- [ ] Request content type (other than JSON)
+    - [ ] JSON should be default
+- [x] Exception handlers (mapping custom exception to http exception)
+    - [ ] More straightforward mapping via WebConfig (Map<MyError,HttpException>)
 
 **Database:**
 - [ ] Provide an easy way to connect to database
