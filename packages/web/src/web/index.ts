@@ -1,4 +1,5 @@
 export * from './http-server';
+export * from './http-exception';
 export * from './route';
 export * from './request-decoder';
 export * from './response-encoder';
