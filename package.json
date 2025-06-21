@@ -1,8 +1,6 @@
 {
   "name": "zenith",
-  "version": "0.1.0",
-  "module": "index.ts",
-  "type": "module",
+  "private": true,
   "workspaces": [
     "packages/*"
   ],
@@ -20,11 +18,5 @@
     "@zenith-framework/core": "workspace:*",
     "@zenith-framework/web": "workspace:*",
     "@zenith-framework/blaze": "workspace:*"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "chalk": "^5.4.1"
   }
 }

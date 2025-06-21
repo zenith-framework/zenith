@@ -9,4 +9,4 @@ export const startBlaze = () => {
     const zenith = new Zenith();
     zenith.with(ZenithWebSystem);
     zenith.start();
-} 
+}

@@ -1,0 +1,8 @@
+{
+    "name": "exception-handlers",
+    "version": "0.1.0",
+    "private": true,
+    "dependencies": {
+        "@zenith-framework/blaze": "workspace:*"
+    }
+}

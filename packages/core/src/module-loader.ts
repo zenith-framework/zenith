@@ -1,6 +1,7 @@
 import fs from 'fs';
 import type { ZenithModule } from "./zenith-module";
 import { zenithLogger } from "./logger";
+import { Glob } from 'bun';
 
 export class ModuleLoader {
     private readonly logger = zenithLogger('ModuleLoader');
@@ -8,14 +9,14 @@ export class ModuleLoader {
 
     async scan(root: string): Promise<ZenithModule[]> {
         this.logger.debug(`Scanning modules in ${root}`);
-        const dirEntries = fs.readdirSync(root, { withFileTypes: true, recursive: true })
-            .filter(dirEntry => (dirEntry.name !== 'index.ts' || dirEntry.parentPath !== root) && !dirEntry.name.includes('.spec.ts'));
+        const glob = new Glob(`**/*.ts`);
+        const files = [...glob.scanSync({ cwd: root, absolute: true })];
+        const filteredFiles = files
+            .filter(file => (file !== 'index.ts' && !file.endsWith('.spec.ts')));
 
-        for (const dirEntry of dirEntries) {
-            if (dirEntry.isFile()) {
-                const module = await import(`${dirEntry.parentPath}/${dirEntry.name}`);
-                this.modules.push({ name: dirEntry.name, path: `${dirEntry.parentPath}/${dirEntry.name}`, module });
-            }
+        for (const file of filteredFiles) {
+            const module = await import(file);
+            this.modules.push({ name: file, path: file, module });
         }
 
         return this.modules;
