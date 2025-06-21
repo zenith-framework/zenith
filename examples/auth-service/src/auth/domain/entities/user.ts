@@ -1,6 +1,6 @@
-import { Entity, EntityConstructArgs } from '../../../utils/entity';
+import { Entity, type EntityConstructArgs } from '../../../utils/entity';
 
-export class UserProps {
+export interface UserProps {
   email: string;
   firstName: string;
   lastName: string;

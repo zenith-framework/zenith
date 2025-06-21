@@ -83,6 +83,7 @@ export class OrbContainer {
         orb.setInstance(instance);
         topologicalSortedOrbs.pop();
       } catch (error) {
+        this.logger.error(`Error providing instance for ${orb.name}: ${error instanceof Error ? error.stack : String(error)}`);
         break;
       }
     }

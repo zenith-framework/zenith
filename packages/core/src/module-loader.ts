@@ -1,7 +1,7 @@
-import fs from 'fs';
 import type { ZenithModule } from "./zenith-module";
 import { zenithLogger } from "./logger";
 import { Glob } from 'bun';
+import chalk from "chalk";
 
 export class ModuleLoader {
     private readonly logger = zenithLogger('ModuleLoader');

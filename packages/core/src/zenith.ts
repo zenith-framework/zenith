@@ -27,6 +27,7 @@ export class Zenith {
   }
 
   async start() {
+    const startTime = performance.now();
     this.logger.info("Starting Zenith");
 
     try {
@@ -52,7 +53,8 @@ export class Zenith {
       process.exit(1);
     }
 
-    this.logger.info(`All systems started`);
+    const totalTimeInSeconds = (performance.now() - startTime) / 1000;
+    this.logger.info(`All systems started in ${chalk.green(totalTimeInSeconds.toFixed(3))} seconds`);
   }
 
   private async startSystems() {

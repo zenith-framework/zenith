@@ -6,9 +6,9 @@
         "start": "bun run src/index.ts"
     },
     "dependencies": {
-        "@zenith/core": "workspace:../../packages/core",
-        "@zenith/web": "workspace:../../packages/web",
-        "@zenith/blaze": "workspace:../../packages/blaze",
+        "@zenith-framework/core": "workspace:../../packages/core",
+        "@zenith-framework/web": "workspace:../../packages/web",
+        "@zenith-framework/blaze": "workspace:../../packages/blaze",
         "class-validator": "^0.14.2",
         "drizzle-orm": "^0.44.2",
         "luxon": "^3.6.1"
