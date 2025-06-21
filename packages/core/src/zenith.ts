@@ -6,6 +6,7 @@ import { OrbContainer } from "./ioc/container";
 import path from 'path';
 import type { ZenithSystem } from './zenith-system';
 import { ZENITH_ORB_TYPE_CONFIG } from './decorators/metadata-keys';
+import chalk from 'chalk';
 
 export class Zenith {
   private readonly logger = zenithLogger('Zenith');
@@ -40,14 +41,14 @@ export class Zenith {
       this.container.instanciateOrbs();
 
       this.container.getOrbsByType(ZENITH_ORB_TYPE_CONFIG).forEach(orb => {
-        this.logger.info(`Registered config \x1b[34m${orb.name}\x1b[0m using \x1b[34m${(orb.value as any).name}\x1b[0m`);
+        this.logger.info(`Registered config ${chalk.blue(orb.name)} using ${chalk.blue((orb.value as any).name)}`);
       });
 
       this.registerShutdownHooks();
 
       await this.startSystems();
     } catch (error) {
-      this.logger.error('Could not start Zenith:', error);
+      this.logger.error(`Could not start Zenith: ${error instanceof Error ? error.stack : String(error)}`);
       process.exit(1);
     }
 
@@ -56,7 +57,7 @@ export class Zenith {
 
   private async startSystems() {
     for (const system of this.systems) {
-      this.logger.info(`Starting system \x1b[33m${system.constructor.name}\x1b[0m`);
+      this.logger.info(`Starting system ${chalk.yellow(system.constructor.name)}`);
       await system.onStart();
     }
   }
@@ -64,7 +65,7 @@ export class Zenith {
   private registerShutdownHooks() {
     process.on('SIGINT', async () => {
       for (const system of this.systems) {
-        this.logger.info(`Stopping \x1b[33m${system.constructor.name}\x1b[0m`);
+        this.logger.info(`Stopping ${chalk.yellow(system.constructor.name)}`);
         await system.onStop();
       }
       this.logger.info(`Shutting down`);
@@ -74,10 +75,10 @@ export class Zenith {
 
   private async prepareSystems() {
     for (const system of this.systems) {
-      this.logger.info(`Initializing system \x1b[33m${system.constructor.name}\x1b[0m`);
+      this.logger.info(`Initializing system ${chalk.yellow(system.constructor.name)}`);
       system.init(this.container);
 
-      this.logger.info(`Registering orbs for system \x1b[33m${system.constructor.name}\x1b[0m`);
+      this.logger.info(`Registering orbs for system ${chalk.yellow(system.constructor.name)}`);
       await this.moduleLoader.scan(system.getPath());
     }
   }

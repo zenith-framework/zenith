@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, RouteParam } from "@zenith/web";
+import { Body, Controller, Get, Post, RouteParam } from "@zenith-framework/web";
 import { TodoService } from "../../services/todo.service";
 
 @Controller('/todos')

@@ -4,6 +4,7 @@ import type { ZenithModule } from "../zenith-module";
 import { zenithLogger } from "../logger";
 import type { InjectOrbOptions } from "../decorators";
 import { CyclicDependencyError } from "./cyclic-dependencies.error";
+import chalk from "chalk";
 
 export class OrbContainer {
   private readonly logger = zenithLogger('OrbContainer');
@@ -30,7 +31,7 @@ export class OrbContainer {
     }
 
     this.orbs.set(orb.name, orb);
-    this.logger.debug(`Registered \x1b[34m${orb.name}\x1b[0m`);
+    this.logger.debug(`Registered ${chalk.blue(orb.name)}`);
   }
 
   instanciateOrbs() {
