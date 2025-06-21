@@ -54,7 +54,7 @@ export class Zenith {
     }
 
     const totalTimeInSeconds = (performance.now() - startTime) / 1000;
-    this.logger.info(`All systems started in ${chalk.green(totalTimeInSeconds.toFixed(3))} seconds`);
+    this.logger.info(`Zenith started in ${chalk.green(totalTimeInSeconds.toFixed(3))} seconds`);
   }
 
   private async startSystems() {
