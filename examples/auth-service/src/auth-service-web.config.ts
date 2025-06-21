@@ -3,7 +3,7 @@ import { ZenithWebConfig } from "@zenith-framework/web";
 
 @Config('ZenithWebConfig')
 export class AuthServiceWebConfig extends ZenithWebConfig {
-    getPort(): number {
+    httpServerPort(): number {
         return 3001;
     }
 }

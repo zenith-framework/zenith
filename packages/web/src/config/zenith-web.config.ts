@@ -1,3 +1,3 @@
 export abstract class ZenithWebConfig {
-    abstract getPort(): number;
+    abstract httpServerPort(): number;
 }

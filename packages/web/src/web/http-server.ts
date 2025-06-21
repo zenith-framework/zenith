@@ -137,7 +137,7 @@ export class HttpServer {
         }
 
         this.server = serve({
-            port: this.config.getPort(),
+            port: this.config.httpServerPort(),
             routes: this.routeHandlers,
         });
         this.logger.info(`Server running on port ${this.server?.port}`);
