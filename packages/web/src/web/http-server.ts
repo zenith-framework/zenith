@@ -118,6 +118,9 @@ export class HttpServer {
         for (const arg of routeArgsMetadata) {
             if (arg.type === 'route') {
                 injectedArgs.push(req.params[arg.name as keyof typeof req.params]);
+            } else if (arg.type === 'query') {
+                const params = new URL(req.url).searchParams;
+                injectedArgs.push(params.get(arg.name));
             } else if (arg.type === 'body') {
                 // TODO: should we fall back to json if no accept header is provided?
                 const mimeType = req.headers.get('content-type') ?? 'application/json';
