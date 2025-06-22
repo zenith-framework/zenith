@@ -1,6 +1,12 @@
-import { Body, Controller, Get, Post, Query, RouteParam } from "@zenith-framework/web";
+import { Body, Controller, Get, Post, Query, RouteParam, Validated } from "@zenith-framework/web";
 import { TodoService } from "../../services/todo.service";
+import { z } from "zod";
 
+const CreateTodoDto = z.object({
+    name: z.string(),
+});
+
+@Validated()
 @Controller('/todos')
 export default class TodoController {
     constructor(
@@ -10,7 +16,6 @@ export default class TodoController {
 
     @Get('/')
     getTodos(@Query('content') content: string) {
-        console.log(content);
         return { todo: this.todoService.getTodos() };
     }
 
@@ -19,8 +24,9 @@ export default class TodoController {
         return { todo: this.todoService.getTodos() };
     }
 
-    @Post('/:id')
-    createTodo(@Body() body: { name: string }) {
+    @Validated(CreateTodoDto)
+    @Post('/')
+    createTodo(@Body() body: z.infer<typeof CreateTodoDto>) {
         return { todo: this.todoService.storeTodo(body.name) };
     }
 }

@@ -18,5 +18,8 @@
     "@zenith-framework/core": "workspace:*",
     "@zenith-framework/web": "workspace:*",
     "@zenith-framework/blaze": "workspace:*"
+  },
+  "dependencies": {
+    "zod": "^3.25.67"
   }
 }

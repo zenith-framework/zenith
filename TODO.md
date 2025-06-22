@@ -1,13 +1,14 @@
 # Road to v1.0
 
 **Web:**
-- [ ] Query parameters
-- [ ] Middlewares
+- [x] Query parameters
 - [ ] Request input Validation
-    - [ ] Body
+    - [x] Body
     - [ ] Query parameters
+    - [x] Support for Zod
 - [ ] Guards
 - [ ] Request context (using ALS)
+- [ ] Middlewares
 - [ ] Request content type (other than JSON)
     - [ ] JSON should be default
 - [x] Exception handlers (mapping custom exception to http exception)

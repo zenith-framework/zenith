@@ -4,6 +4,8 @@ export interface RouteParamMetadata {
     type: 'route' | 'query' | 'body';
     name: string;
     index: number;
+    validated?: boolean;
+    validationSchema?: any;
 }
 
 export const RouteParam = (name: string) => {
