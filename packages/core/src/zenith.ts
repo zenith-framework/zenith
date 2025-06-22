@@ -81,7 +81,8 @@ export class Zenith {
       system.init(this.container);
 
       this.logger.info(`Registering orbs for system ${chalk.yellow(system.constructor.name)}`);
-      await this.moduleLoader.scan(system.getPath());
+      const modules = await this.moduleLoader.scan(system.getPath());
+      this.container.registerModules(modules);
     }
   }
 }

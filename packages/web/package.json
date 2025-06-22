@@ -6,13 +6,13 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.1.5",
+  "version": "0.2.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@zenith-framework/core": "0.1.2",
+    "@zenith-framework/core": "0.2.0",
     "chalk": "^5.4.1"
   }
 }

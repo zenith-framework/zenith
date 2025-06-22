@@ -18,9 +18,6 @@ export class ZenithWebSystem implements ZenithSystem {
         await this.httpServer.start();
     }
 
-    async registerOrbs(): Promise<void> {
-    }
-
     async onStop(): Promise<void> {
         this.httpServer.stop();
     }
