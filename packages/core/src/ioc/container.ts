@@ -24,7 +24,7 @@ export class OrbContainer {
 
     if (orbRaw instanceof Function) {
       const dependencies = Reflect.getMetadata('design:paramtypes', orbRaw) as (any[] | undefined) ?? [];
-      const dependenciesNames = dependencies.map((dependency, index) => this.getInjectableOrbName(dependency, index));
+      const dependenciesNames = dependencies.map((dependency, index) => this.getInjectableOrbNameFromParameter(orbRaw, index, dependency.name));
       orb = new OrbWrapper<typeof orbRaw>(orbName, type, orbRaw, dependenciesNames, null);
     } else {
       orb = new OrbWrapper<T>(orbName, type, orbRaw, [], orbRaw);
@@ -71,9 +71,9 @@ export class OrbContainer {
       }
     }
 
+    const failedInjections: string[] = [];
     while (topologicalSortedOrbs.length > 0) {
-
-      const orb = this.orbs.get(topologicalSortedOrbs.at(topologicalSortedOrbs.length - 1)!)!;
+      const orb = this.orbs.get(topologicalSortedOrbs.pop()!)!;
       if (orb.getInstance()) {
         continue;
       }
@@ -81,11 +81,16 @@ export class OrbContainer {
       try {
         const instance = this.provideInstance(orb.value);
         orb.setInstance(instance);
-        topologicalSortedOrbs.pop();
       } catch (error) {
         this.logger.error(`Error providing instance for ${orb.name}: ${error instanceof Error ? error.stack : String(error)}`);
-        break;
+        failedInjections.push(orb.name);
+        continue;
       }
+    }
+
+    if (failedInjections.length > 0) {
+      this.logger.error(`Failed to instantiate [${chalk.red(failedInjections.join(', '))}]`);
+      throw new Error(`Failed to instantiate [${failedInjections.join(', ')}]`);
     }
 
     if (topologicalSortedOrbs.length > 0) {
@@ -98,9 +103,15 @@ export class OrbContainer {
     return Array.from(this.orbs.values()).filter(orb => orb.type === type) as OrbWrapper<T>[];
   }
 
-  private getInjectableOrbName<T>(orbRaw: (new (...args: any[]) => T) | T, index?: number): string {
+  private getInjectableOrbNameFromParameter<T>(orbRaw: (new (...args: any[]) => T) | T, parameterIndex: number, parameterTypeName: string): string {
     const base = typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor;
-    const injectName = index ? Reflect.getMetadata(ZENITH_ORB_INJECT_NAME, base, index.toString()) : Reflect.getMetadata(ZENITH_ORB_INJECT_NAME, base);
+    const injectName = Reflect.getMetadata(ZENITH_ORB_INJECT_NAME, base, parameterIndex.toString());
+    return injectName ?? parameterTypeName;
+  }
+
+  private getInjectableOrbName<T>(orbRaw: (new (...args: any[]) => T) | T): string {
+    const base = typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor;
+    const injectName = Reflect.getMetadata(ZENITH_ORB_INJECT_NAME, base);
     return injectName ?? base.name;
   }
 
