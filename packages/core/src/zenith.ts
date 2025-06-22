@@ -22,8 +22,9 @@ export class Zenith {
     this.container = new OrbContainer();
   }
 
-  with(system: (new (...args: any[]) => ZenithSystem) | ZenithSystem) {
+  with(system: (new (...args: any[]) => ZenithSystem) | ZenithSystem): this {
     this.systems.push(system instanceof Function ? new system() : system);
+    return this;
   }
 
   async start() {
