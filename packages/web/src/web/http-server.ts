@@ -7,12 +7,13 @@ import { ZenithWebConfig } from "../config/zenith-web.config";
 import { sanitizePath } from "../utils/path.utils";
 import type { RequestDecoder } from "./request-decoder";
 import type { ResponseEncoder } from "./response-encoder";
-import { BadRequestException, HttpException, InternalServerErrorException, UnsupportedMediaTypeException } from "./http-exception";
+import { BadRequestException, HttpException, InternalServerErrorException, UnauthorizedException, UnsupportedMediaTypeException } from "./http-exception";
 import type { ZenithHttpResponse } from "./zenith-http-response";
 import chalk from "chalk";
 import { webSystemLogger } from "../logger";
 import type { ControllerMetadata } from "../decorators/controller.decorator";
 import type { Validator } from "./validator";
+import type { RequestGuard } from "./request-guard";
 
 @Orb()
 export class HttpServer {
@@ -175,6 +176,17 @@ export class HttpServer {
 
     private async executeRequest(req: BunRequest, routeMetadata: Route, routeArgsMetadata: RouteParamMetadata[], controller: any, handler: string): Promise<ZenithHttpResponse> {
         try {
+            const controllerMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_METADATA, controller.constructor) || {} as ControllerMetadata;
+
+            if (controllerMetadata.guards || routeMetadata.guards) {
+                const guards = [...(controllerMetadata.guards ?? []), ...(routeMetadata.guards ?? [])];
+                for (const guardOrb of guards) {
+                    const guard = this.container.get<RequestGuard>(guardOrb);
+                    if (guard && !await guard.accepts(req)) {
+                        throw new UnauthorizedException(`Guard ${guard.constructor.name} rejected request`);
+                    }
+                }
+            }
             const injectedArgs = await this.prepareHandlerArgsInjection(req, routeMetadata, routeArgsMetadata);
 
             const body = await controller[handler].bind(controller)(...injectedArgs);
