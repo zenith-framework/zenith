@@ -1,10 +1,10 @@
 # Road to v1.0
 
 **Web:**
-- [x] Query parameters
-- [ ] Request input Validation
+- [x] Request input Validation
     - [x] Body
-    - [ ] Query parameters
+    - [x] Query parameters
+    - [x] Path parameters
     - [x] Support for Zod
 - [ ] Guards
 - [ ] Request context (using ALS)
@@ -13,6 +13,9 @@
     - [ ] JSON should be default
 - [x] Exception handlers (mapping custom exception to http exception)
     - [ ] More straightforward mapping via WebConfig (Map<MyError,HttpException>)
+- [ ] Validate response
+    - [ ] Strip unwanted keys
+- [ ] Support other validators
 
 **Database:**
 - [ ] Provide an easy way to connect to database

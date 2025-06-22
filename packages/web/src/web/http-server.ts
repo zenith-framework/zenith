@@ -38,7 +38,7 @@ export class HttpServer {
             for (const mimeType of mimeTypes) {
                 this.httpRequestDecoders.set(mimeType, requestDecoder);
             }
-            this.logger.info(`Registering request decoder '${chalk.blue(requestDecoder.name)}' with mime types [${chalk.blue(mimeTypes.join(', '))}]`);
+            this.logger.info(`Registering request decoder '${chalk.bold(requestDecoder.name)}' with mime types [${chalk.blue(mimeTypes.join(', '))}]`);
         }
 
         const responseEncoders = this.container.getOrbsByType<ResponseEncoder>(ZENITH_ORB_TYPE_RESPONSE_ENCODER);
@@ -47,18 +47,18 @@ export class HttpServer {
             for (const mimeType of mimeTypes) {
                 this.httpResponseEncoders.set(mimeType, responseEncoder);
             }
-            this.logger.info(`Registering response encoder '${chalk.blue(responseEncoder.name)}' with mime types [${chalk.blue(mimeTypes.join(', '))}]`);
+            this.logger.info(`Registering response encoder '${chalk.bold(responseEncoder.name)}' with mime types [${chalk.blue(mimeTypes.join(', '))}]`);
         }
 
         const exceptionHandlers = this.container.getOrbsByType<any>(ZENITH_ORB_TYPE_EXCEPTION_HANDLER);
         for (const exceptionHandler of exceptionHandlers) {
-            this.logger.info(`Registering exception handler '${chalk.blue(exceptionHandler.name)}'`);
+            this.logger.info(`Registering exception handler '${chalk.bold(exceptionHandler.name)}'`);
             const exceptionHandlerInstance = exceptionHandler.getInstance();
             const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(exceptionHandlerInstance)).filter((key) => key !== 'constructor');
 
             for (const method of methods) {
-                this.logger.info(`Registering exception handler '${chalk.blue(method)}' for '${chalk.blue(exceptionHandler.name)}'`);
                 const exceptionsHandled = Reflect.getMetadata(ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, exceptionHandlerInstance, method) as Function[];
+                this.logger.info(`Catch [${chalk.blue(exceptionsHandled.map((exception) => exception.name).join(', '))}] in '${chalk.bold(exceptionHandler.name + '.' + method)}'`);
                 exceptionsHandled.forEach((exception) => {
                     this.exceptionHandlers.set(exception.name, { orb: exceptionHandler, handler: exceptionHandlerInstance[method].bind(exceptionHandlerInstance) as Function });
                 });
@@ -124,10 +124,14 @@ export class HttpServer {
         const injectedArgs: any[] = [];
         for (const arg of routeArgsMetadata) {
             if (arg.type === 'route') {
-                injectedArgs.push(req.params[arg.name as keyof typeof req.params]);
+                const routeParam = req.params[arg.name as keyof typeof req.params];
+                await this.validateRequestParam(arg, routeMetadata, routeParam);
+                injectedArgs.push(routeParam);
             } else if (arg.type === 'query') {
                 const params = new URL(req.url).searchParams;
-                injectedArgs.push(params.get(arg.name));
+                const queryParam = params.get(arg.name);
+                await this.validateRequestParam(arg, routeMetadata, queryParam);
+                injectedArgs.push(queryParam);
             } else if (arg.type === 'body') {
                 // TODO: should we fall back to json if no accept header is provided?
                 const mimeType = req.headers.get('content-type') ?? 'application/json';
@@ -141,15 +145,8 @@ export class HttpServer {
                 }
                 const body = await requestDecoder.getInstance()?.decode(req);
 
-                if (arg.validated || routeMetadata.validated) {
-                    const schema = arg.validationSchema || routeMetadata.validationSchema;
-                    if (schema) {
-                        const result = await this.validator.validate(body, schema);
-                        if (!result) {
-                            throw new BadRequestException();
-                        }
-                    }
-                }
+                await this.validateRequestParam(arg, routeMetadata, body);
+
                 injectedArgs.push(body);
             }
         }
@@ -158,6 +155,18 @@ export class HttpServer {
         }
 
         return injectedArgs;
+    }
+
+    private async validateRequestParam(arg: RouteParamMetadata, routeMetadata: Route, value: any): Promise<void> {
+        if (arg.validated || routeMetadata.validated) {
+            const schema = arg.validationSchema || routeMetadata.validationSchema;
+            if (schema) {
+                const result = await this.validator.validate(value, schema);
+                if (!result) {
+                    throw new BadRequestException();
+                }
+            }
+        }
     }
 
     private routeExpectsBody(routeMetadata: Route) {
