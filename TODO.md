@@ -1,12 +1,6 @@
 # Road to v1.0
 
 **Web:**
-- [x] Request input Validation
-    - [x] Body
-    - [x] Query parameters
-    - [x] Path parameters
-    - [x] Support for Zod
-- [ ] Guards
 - [ ] Request context (using ALS)
 - [ ] Middlewares
 - [ ] Request content type (other than JSON)
