@@ -21,7 +21,7 @@ export class Zenith {
   private readonly systems: ZenithSystem[] = [];
 
   constructor(private readonly debug: boolean = false) {
-    this.rootDir = path.dirname(process.argv[1]!);
+    this.rootDir = path.dirname(Bun.main);
     this.moduleLoader = new ModuleLoader();
     this.configLoader = new ConfigLoader(this.rootDir);
     this.container = new OrbContainer();
