@@ -1,14 +1,13 @@
-import { IsEmail, IsNotEmpty } from 'class-validator';
 import type { SignUpWithEmailPasswordCommand } from '../../../application/command/sign-up-with-email-password.command';
 
 export class SignUpWithEmailPasswordRequest
   implements SignUpWithEmailPasswordCommand {
-  @IsEmail()
+  // @IsEmail()
   email!: string;
-  @IsNotEmpty()
+  // @IsNotEmpty()
   password!: string;
-  @IsNotEmpty()
+  // @IsNotEmpty() 
   firstName!: string;
-  @IsNotEmpty()
+  // @IsNotEmpty()
   lastName!: string;
 }

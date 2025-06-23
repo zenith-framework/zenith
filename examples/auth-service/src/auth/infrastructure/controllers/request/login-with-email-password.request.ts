@@ -1,10 +1,9 @@
-import { IsEmail, IsNotEmpty } from 'class-validator';
 import type { LoginWithEmailPasswordCommand } from '../../../application/command/login-with-email-password.command';
 
 export class LoginWithEmailPasswordRequest
   implements LoginWithEmailPasswordCommand {
-  @IsEmail()
+  // @IsEmail()
   email!: string;
-  @IsNotEmpty()
+  // @IsNotEmpty()
   password!: string;
 }
