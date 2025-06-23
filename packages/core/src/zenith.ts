@@ -14,6 +14,7 @@ export class Zenith {
   private readonly moduleLoader: ModuleLoader;
   private readonly container: OrbContainer;
 
+  private readonly systemsToLoad: (new (...args: any[]) => ZenithSystem)[] = [];
   private readonly systems: ZenithSystem[] = [];
 
   constructor(private readonly debug: boolean = false) {
@@ -22,8 +23,8 @@ export class Zenith {
     this.container = new OrbContainer();
   }
 
-  with(system: (new (...args: any[]) => ZenithSystem) | ZenithSystem): this {
-    this.systems.push(system instanceof Function ? new system() : system);
+  with(system: new (container: OrbContainer) => ZenithSystem): this {
+    this.systemsToLoad.push(system);
     return this;
   }
 
@@ -34,7 +35,6 @@ export class Zenith {
     try {
       // Always register the container first
       this.container.registerOrb(this.container, { name: 'OrbContainer' });
-
 
       await this.prepareSystems();
 
@@ -77,13 +77,13 @@ export class Zenith {
   }
 
   private async prepareSystems() {
-    for (const system of this.systems) {
-      this.logger.info(`Initializing system ${chalk.yellow(system.constructor.name)}`);
-      system.init(this.container);
-
-      this.logger.info(`Registering orbs for system ${chalk.yellow(system.constructor.name)}`);
-      const modules = await this.moduleLoader.scan(system.getPath());
+    for (const system of this.systemsToLoad) {
+      this.logger.info(`Initializing system ${chalk.yellow(system.name)}`);
+      const systemInstance = new system(this.container);
+      const modules = await this.moduleLoader.scan(systemInstance.getRoot());
       this.container.registerModules(modules);
+
+      this.systems.push(systemInstance);
     }
   }
 }

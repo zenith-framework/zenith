@@ -1,17 +1,20 @@
 import type { OrbContainer } from "./ioc/container";
 
-export interface ZenithSystem {
-    init(container: OrbContainer): void;
+export abstract class ZenithSystem {
+    constructor(
+        public readonly container: OrbContainer,
+    ) {
+    }
 
     /**
      * Start the system, after all systems are registered
      */
-    onStart(): Promise<void>;
+    abstract onStart(): Promise<void>;
 
     /**
      * Stop the system
      */
-    onStop(): Promise<void>;
+    abstract onStop(): Promise<void>;
 
-    getPath(): string;
+    abstract getRoot(): string;
 }

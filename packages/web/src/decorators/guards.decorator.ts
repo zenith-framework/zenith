@@ -14,7 +14,7 @@ export const Guards = (guards: RequestGuardOrbProvider[]) => {
             const route = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, target, propertyKey) as Route;
             route.guards = guards;
             Reflect.defineMetadata(ZENITH_CONTROLLER_ROUTE, route, target, propertyKey);
-            webSystemLogger.info(`Registering guards [${guards.map((guard) => guard.constructor.name).join(', ')}] for route ${target.name}.${propertyKey}`);
+            webSystemLogger.info(`Registering guards [${guards.map((guard) => guard.name ?? guard.constructor.name).join(', ')}] for route ${target.constructor.name}.${propertyKey}`);
         };
     };
 };

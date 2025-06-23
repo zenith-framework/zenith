@@ -1,15 +1,8 @@
-import type { ZenithSystem } from "@zenith-framework/core";
+import { ZenithSystem } from "@zenith-framework/core";
 import { HttpServer } from "./web/http-server";
-import { OrbContainer } from "@zenith-framework/core";
 
-export class ZenithWebSystem implements ZenithSystem {
-    private container!: OrbContainer;
+export class ZenithWebSystem extends ZenithSystem {
     private httpServer!: HttpServer;
-
-    init(container: OrbContainer): void {
-        this.container = container;
-    }
-
 
     async onStart(): Promise<void> {
         this.httpServer = this.container.get(HttpServer)!;
@@ -22,7 +15,7 @@ export class ZenithWebSystem implements ZenithSystem {
         this.httpServer.stop();
     }
 
-    getPath(): string {
+    getRoot(): string {
         return import.meta.dirname;
     }
 }
