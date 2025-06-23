@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Guards, Post } from '@zenith/web';
+import { Body, Controller, Get, Guards, Post } from '@zenith-framework/web';
 import { LoginWithEmailPasswordUseCase } from '../../application/login-with-email-password.usecase';
 import type { SignUpWithEmailPasswordResult } from '../../application/result/sign-up-with-email-password.result';
 import { SignUpWithEmailPasswordUseCase } from '../../application/sign-up-with-email-password.usecase';

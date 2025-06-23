@@ -1,3 +1,3 @@
-import { startBlaze } from "@zenith/blaze";
+import { startBlaze } from "@zenith-framework/blaze";
 
 startBlaze();
