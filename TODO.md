@@ -1,5 +1,8 @@
 # Road to v1.0
 
+**Core:**
+- [ ] Configuration loader
+
 **Web:**
 - [ ] Request context (using ALS)
 - [ ] Middlewares

@@ -5,6 +5,7 @@ import { zenithLogger } from "../logger";
 import type { InjectOrbOptions } from "../decorators";
 import { CyclicDependencyError } from "./cyclic-dependencies.error";
 import chalk from "chalk";
+import { getInjectableOrbName } from "./utils";
 
 export class OrbContainer {
   private readonly logger = zenithLogger('OrbContainer');
@@ -15,7 +16,7 @@ export class OrbContainer {
   }
 
   registerOrb<T>(orbRaw: (new (...args: any[]) => T) | T, options: { name?: string } = {}) {
-    const orbName = options.name ?? this.getInjectableOrbName(orbRaw);
+    const orbName = options.name ?? getInjectableOrbName(orbRaw);
     if (!orbName) {
       throw new Error('Cannot register orb without a name')
     }
@@ -109,12 +110,6 @@ export class OrbContainer {
     return injectName ?? parameterTypeName;
   }
 
-  private getInjectableOrbName<T>(orbRaw: (new (...args: any[]) => T) | T): string {
-    const base = typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor;
-    const injectName = Reflect.getMetadata(ZENITH_ORB_INJECT_NAME, base);
-    return injectName ?? base.name;
-  }
-
   private provideInstance(orbRaw: (new (...args: any[]) => any)): any {
     const parameters = Reflect.getMetadata('design:paramtypes', orbRaw) as (any[] | undefined) ?? [];
     if (!parameters) {
@@ -137,7 +132,7 @@ export class OrbContainer {
   }
 
   get<T>(provider: (new (...args: any[]) => T) | string): T | undefined {
-    const name = typeof provider === 'string' ? provider : this.getInjectableOrbName(provider);
+    const name = typeof provider === 'string' ? provider : getInjectableOrbName(provider);
     const orb = this.orbs.get(name);
     if (!orb) {
       return undefined;
