@@ -32,7 +32,7 @@ export class OrbContainer {
     }
 
     this.orbs.set(orb.name, orb);
-    this.logger.debug(`Registered ${chalk.blue(orb.name)}`);
+    this.logger.debug(`Registered orb ${chalk.blue(orb.name)}`);
   }
 
   instanciateOrbs() {

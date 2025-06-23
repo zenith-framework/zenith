@@ -1,7 +1,9 @@
 # Road to v1.0
 
 **Core:**
-- [ ] Configuration loader
+- [x] Configuration loader
+    - [ ] Work with formats other than JSON
+    - [ ] Load variables from env (process.env)
 
 **Web:**
 - [ ] Request context (using ALS)
