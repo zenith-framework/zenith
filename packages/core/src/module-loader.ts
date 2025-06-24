@@ -20,12 +20,11 @@ export class ModuleLoader {
             throw new Error('Node modules found in root directory, skipping module scan.');
         }
 
+        // TODO: improve glob expression
         const glob = new Glob(`**/*.ts`);
-        const files = [...glob.scanSync({ cwd: root, absolute: true })];
-        const filteredFiles = files
-            .filter(file => (!file.endsWith('.spec.ts') && !file.endsWith('/index.ts')));
+        const files = [...glob.scanSync({ cwd: root, absolute: true })].filter(isLoadable);
 
-        for (const file of filteredFiles) {
+        for (const file of files) {
             if (this.visitedModules.has(file)) {
                 continue;
             }
@@ -36,4 +35,9 @@ export class ModuleLoader {
 
         return modules;
     }
+}
+
+const unscanableFileSuffixes = ['.spec.ts', '_spec.ts', '.test.ts', '_test.ts', '/index.ts', '.d.ts'];
+function isLoadable(file: string) {
+    return !unscanableFileSuffixes.some(suffix => file.endsWith(suffix));
 }
