@@ -1,4 +1,4 @@
 export abstract class ZenithWebConfig {
-    abstract globalRoutesPrefix(): string;
+    abstract globalRoutesPrefix(): string | undefined;
     abstract httpServerPort(): number;
 }

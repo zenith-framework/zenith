@@ -72,6 +72,50 @@ export class OrbContainer {
       }
     }
 
+    if (topologicalSortedOrbs.length < this.orbs.size) {
+      const visited = new Set<string>();
+      const onStack = new Set<string>();
+      const cycles = [];
+
+      for (const startNode of this.orbs.values()) {
+        if (visited.has(startNode.name)) {
+          continue;
+        }
+
+        const stack = [{ orb: startNode.name, dependencies: [...startNode.dependencies] }];
+        const path = [startNode.name];
+        onStack.add(startNode.name);
+
+        while (stack.length > 0) {
+          const { orb: currentNode, dependencies } = stack.pop()!;
+          const neighbor = dependencies.shift();
+          stack.push({ orb: currentNode, dependencies: [...dependencies] });
+          if (!neighbor) {
+            stack.pop();
+            const node = path.pop()!;
+            onStack.delete(node);
+            visited.add(node);
+          } else {
+            if (!visited.has(neighbor)) {
+              stack.push({ orb: neighbor, dependencies: [...this.orbs.get(neighbor)!.dependencies] });
+              path.push(neighbor);
+              onStack.add(neighbor);
+              visited.add(neighbor);
+              continue;
+            } else if (onStack.has(neighbor)) {
+              const cycleStart = path.indexOf(neighbor);
+              const cycle = [...path.slice(cycleStart), neighbor];
+              cycles.push(cycle);
+            }
+          }
+        }
+      }
+
+
+      this.logger.error(`Cyclic dependency detected: ${cycles.map(cycle => cycle.join(' -> ')).join(', ')}`);
+      throw new CyclicDependencyError(cycles);
+    }
+
     const failedInjections: string[] = [];
     while (topologicalSortedOrbs.length > 0) {
       const orb = this.orbs.get(topologicalSortedOrbs.pop()!)!;

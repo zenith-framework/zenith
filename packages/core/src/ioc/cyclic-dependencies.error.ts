@@ -1,5 +1,5 @@
 export class CyclicDependencyError extends Error {
-    constructor(public readonly path: string[]) {
-        super(`Cyclic dependency detected: ${path.join(' -> ')}`);
+    constructor(public readonly cycles: string[][]) {
+        super(`Cyclic dependency detected: ${cycles.map(cycle => cycle.join(' -> ')).join(', ')}`);
     }
 }

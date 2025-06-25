@@ -69,6 +69,7 @@ export class HttpServer {
 
     async registerRoutes() {
         this.logger.info("Registering routes");
+        const globalRoutesPrefix = this.config.globalRoutesPrefix() ?? '';
         const controllers = this.container.getOrbsByType<any>(ZENITH_ORB_TYPE_CONTROLLER);
         for (const controller of controllers) {
             const controllerInstance = controller.getInstance();
@@ -83,7 +84,7 @@ export class HttpServer {
                     continue;
                 }
 
-                let fullPath: string = this.config.globalRoutesPrefix() + '/' + controllerDefaultPath;
+                let fullPath: string = globalRoutesPrefix + '/' + controllerDefaultPath;
                 if (routeMetadata.path && routeMetadata.path !== '') {
                     fullPath += '/' + routeMetadata.path;
                 }
