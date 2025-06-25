@@ -12,7 +12,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@zenith-framework/core": "workspace:*",
+    "@zenith-framework/core": "0.3.1",
     "chalk": "^5.4.1",
     "zod": "^3.25.67"
   }

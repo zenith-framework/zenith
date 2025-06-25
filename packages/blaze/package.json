@@ -12,7 +12,7 @@
         ".": "./src/index.ts"
     },
     "dependencies": {
-        "@zenith-framework/core": "workspace:*",
-        "@zenith-framework/web": "workspace:*"
+        "@zenith-framework/core": "0.3.1",
+        "@zenith-framework/web": "0.2.1"
     }
 }
