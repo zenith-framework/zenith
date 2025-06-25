@@ -2,7 +2,8 @@
   "name": "zenith",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
     "lint": "eslint .",
@@ -10,16 +11,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
-    "@types/bun": "latest",
     "eslint": "^9.29.0",
     "globals": "^16.2.0",
     "prettier": "^3.5.3",
-    "typescript-eslint": "^8.34.0",
-    "@zenith-framework/core": "workspace:*",
-    "@zenith-framework/web": "workspace:*",
-    "@zenith-framework/blaze": "workspace:*"
-  },
-  "dependencies": {
-    "zod": "^3.25.67"
+    "typescript-eslint": "^8.34.0"
   }
 }
