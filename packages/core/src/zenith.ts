@@ -42,6 +42,7 @@ export class Zenith {
       this.container.registerOrb(this.container, { name: ZENITH_CONTAINER_ORB });
 
       const config = await this.configLoader.loadConfig(env);
+;
       this.container.registerOrb(config, { name: ZENITH_CONFIG_ORB });
 
       await this.prepareSystems();

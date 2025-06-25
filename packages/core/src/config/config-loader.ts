@@ -39,9 +39,17 @@ export class ConfigLoader {
         }
 
         for (const file of filesToLoad) {
-            const fileContent = await Bun.file(file).text();
-            Object.assign(values, dotenv.parse(fileContent));
-            this.logger.info(`Applying config from ${file}`);
+            try {
+                const bunFile = Bun.file(file);
+                if (!(await bunFile.exists())) {
+                    continue;
+                }
+                const fileContent = await bunFile.text();
+                Object.assign(values, dotenv.parse(fileContent));
+                this.logger.info(`Applying config from ${bunFile.name}`);
+            } catch (error) {
+                this.logger.error(`Error loading config from ${file}: ${error}`);
+            }
         }
 
         return new ZenithConfig(values);
