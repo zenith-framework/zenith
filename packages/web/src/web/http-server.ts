@@ -26,8 +26,8 @@ export class HttpServer {
 
     constructor(
         private readonly container: OrbContainer,
-        @InjectOrb('ZenithWebConfig', { allowAbsent: true }) private readonly config: ZenithWebConfig,
-        @InjectOrb('Validator', { allowAbsent: false }) private readonly validator: Validator<any>,
+        @InjectOrb('ZenithWebConfig') private readonly config: ZenithWebConfig,
+        @InjectOrb('Validator') private readonly validator: Validator<any>,
     ) {
     }
 
@@ -82,18 +82,19 @@ export class HttpServer {
                     this.logger.error(`Route ${routeMetadata.method} ${routeMetadata.path} is not validated but the controller requires it (${controller.value.name}.${route}).`);
                     continue;
                 }
-                const routePath = sanitizePath(routeMetadata.path);
 
-                let fullPath: string = '/' + controllerDefaultPath;
-                if (routePath && routePath !== '') {
-                    fullPath += '/' + routePath;
+                let fullPath: string = this.config.globalRoutesPrefix() + '/' + controllerDefaultPath;
+                if (routeMetadata.path && routeMetadata.path !== '') {
+                    fullPath += '/' + routeMetadata.path;
                 }
 
-                const existingHandlers = this.routeHandlers[fullPath] || {} as Record<RouteMethod, (...args: any[]) => any>;
-                existingHandlers[routeMetadata.method] = (req: BunRequest) => this.handleRequest(req, fullPath, controllerInstance, route);
+                const sanitizedFullPath = '/' + sanitizePath(fullPath);
 
-                this.routeHandlers[fullPath] = existingHandlers;
-                this.logger.info(`Registered route: ${routeMetadata.method} ${fullPath} (${controller.value.name}.${route})`);
+                const existingHandlers = this.routeHandlers[sanitizedFullPath] || {} as Record<RouteMethod, (...args: any[]) => any>;
+                existingHandlers[routeMetadata.method] = (req: BunRequest) => this.handleRequest(req, sanitizedFullPath, controllerInstance, route);
+
+                this.routeHandlers[sanitizedFullPath] = existingHandlers;
+                this.logger.info(`Registered route: ${routeMetadata.method} ${sanitizedFullPath} (${controller.value.name}.${route})`);
             }
         }
     }
