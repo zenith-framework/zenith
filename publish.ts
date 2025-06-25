@@ -49,33 +49,32 @@ packageJson.version = newVersion;
 console.log(`Writing to ${packagePath}`);
 writeFileSync(packagePath, JSON.stringify(packageJson, null, 2) + "\n");
 
-await Bun.spawn([
-  'bun',
-  'publish'
-], {
+console.log(`Adding ${packagePath} to git`);
+await Bun.spawn(['git', 'add', packagePath], {
+  stdio: ['inherit', 'inherit', 'inherit'],
+}).exited;
+
+console.log(`Committing ${packagePath} to git`);
+await Bun.spawn(['git', 'commit', '-m', `chore(${selectedPackage}): bump to ${newVersion}`], {
+  stdio: ['inherit', 'inherit', 'inherit'],
+}).exited;
+
+console.log(`Pushing to remote`);
+await Bun.spawn(['git', 'push'], {
+  stdio: ['inherit', 'inherit', 'inherit'],
+}).exited;
+
+console.log(`Publishing ${selectedPackage} ${newVersion}`);
+await Bun.spawn(['bun', 'publish'], {
   cwd: packageDir,
-  stdin: 'inherit',
-  stdout: 'inherit',
-  stderr: 'inherit',
+  stdio: ['inherit', 'inherit', 'inherit'],
 }).exited;
 
 const gitTagName = `${selectedPackage}/${newVersion}`;
 
-await Bun.spawn([
-  'git',
-  'tag',
-  gitTagName,
-  '-m',
-  `Release ${selectedPackage} ${newVersion}`,
-], {
-  stdin: 'inherit',
-  stdout: 'inherit',
-  stderr: 'inherit',
+console.log(`Tagging ${gitTagName} and pushing to remote`);
+await Bun.spawn(['git', 'tag', gitTagName, '-m', `Release ${selectedPackage} ${newVersion}`], {
+  stdio: ['inherit', 'inherit', 'inherit'],
 }).exited;
 
-await Bun.spawn([
-  'git',
-  'push',
-  'origin',
-  gitTagName,
-], { stdin: 'inherit', stdout: 'inherit', stderr: 'inherit' }).exited;
+await Bun.spawn(['git', 'push', 'origin', gitTagName], { stdio: ['inherit', 'inherit', 'inherit'] }).exited;
