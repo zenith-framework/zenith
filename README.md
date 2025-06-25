@@ -12,7 +12,7 @@ An orb is something that you provide to the IoC container to inject (could be a 
 `Blaze` is a starter-pack to accelerate your application bootstrap.
 To start, init a new repo and add in `src/index.ts`:
 ```ts
-import { startBlaze } from "@zenith/blaze";
+import { startBlaze } from "@zenith-framework/blaze";
 startBlaze(); 
 ```
 
@@ -22,8 +22,8 @@ This will automatically scan your modules and use a web server.
 
 Alternatively, to start your first project without blaze, init a new repo and add in `src/index.ts`:
 ```ts
-import { Zenith } from '@zenith/core';
-import { ZenithWebSystem } from '@zenith/web';
+import { Zenith } from '@zenith-framework/core';
+import { ZenithWebSystem } from '@zenith-framework/web';
 
 const zenith = new Zenith();
 zenith.with(ZenithWebSystem); // Optional if you don't want to use web server features
