@@ -12,7 +12,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@zenith-framework/core": "^0.3.1",
-    "@zenith-framework/web": "^0.3.0"
+    "@zenith-framework/core": "^0.3.2",
+    "@zenith-framework/web": "^0.3.1"
   }
 }
