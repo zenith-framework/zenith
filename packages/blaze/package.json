@@ -13,6 +13,6 @@
   },
   "dependencies": {
     "@zenith-framework/core": "^0.3.4",
-    "@zenith-framework/web": "^0.3.4"
+    "@zenith-framework/web": "^0.3.5"
   }
 }
