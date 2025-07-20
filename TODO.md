@@ -8,6 +8,12 @@
 **Web:**
 - [ ] Request context (using ALS)
 - [ ] Middlewares
+- [ ] Security concerns (using middlewares)
+    - [ ] CORS
+    - [ ] XSS
+    - [ ] CSRF
+    - [ ] HPP
+    - [ ] Rate limiting ?
 - [ ] Request content type (other than JSON)
     - [ ] JSON should be default
 - [x] Exception handlers (mapping custom exception to http exception)

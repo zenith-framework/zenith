@@ -58,9 +58,6 @@ export class OrbContainer {
     const topologicalSortedOrbs: string[] = [];
     while (zeroIndegreeOrbs.length > 0) {
       const orb = this.orbs.get(zeroIndegreeOrbs.pop()!)!;
-      if (orb.getInstance()) {
-        continue;
-      }
 
       topologicalSortedOrbs.push(orb.name);
 
@@ -111,7 +108,6 @@ export class OrbContainer {
         }
       }
 
-
       this.logger.error(`Cyclic dependency detected: ${cycles.map(cycle => cycle.join(' -> ')).join(', ')}`);
       throw new CyclicDependencyError(cycles);
     }
@@ -140,7 +136,7 @@ export class OrbContainer {
 
     if (topologicalSortedOrbs.length > 0) {
       this.logger.error(`Cyclic dependency detected: ${topologicalSortedOrbs.join(' -> ')}`);
-      throw new CyclicDependencyError(topologicalSortedOrbs);
+      throw new CyclicDependencyError([topologicalSortedOrbs]);
     }
   }
 

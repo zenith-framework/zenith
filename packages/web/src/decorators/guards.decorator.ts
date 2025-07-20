@@ -3,9 +3,9 @@ import type { RequestGuard, RequestGuardOrbProvider } from "../web/request-guard
 import type { Route } from "../web/route";
 import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE } from "./metadata-keys";
 import type { ControllerMetadata } from "./controller.decorator";
-import { getInjectableOrbName } from "../../../core/src/ioc/utils";
 import chalk from "chalk";
-
+import { getInjectableOrbName } from "@zenith-framework/core";
+    
 export const Guards = (guards: RequestGuardOrbProvider[]) => {
     return (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) => {
         if (!propertyKey || !descriptor) {

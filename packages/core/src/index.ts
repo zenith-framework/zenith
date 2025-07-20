@@ -1,7 +1,6 @@
 export * from './config';
 export * from './decorators';
-export * from './ioc/container';
-export * from './ioc/orb-wrapper';
+export * from './ioc';
 export * from './logger';
 export * from './zenith-system';
 

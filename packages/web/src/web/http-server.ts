@@ -14,6 +14,7 @@ import { webSystemLogger } from "../logger";
 import type { ControllerMetadata } from "../decorators/controller.decorator";
 import type { Validator } from "./validator";
 import type { RequestGuard } from "./request-guard";
+import { HttpRequestHandler } from "./http-request-handler";
 
 @Orb()
 export class HttpServer {
@@ -26,45 +27,10 @@ export class HttpServer {
 
     constructor(
         private readonly container: OrbContainer,
+        private readonly httpRequestHandler: HttpRequestHandler,
         @InjectOrb('ZenithWebConfig') private readonly config: ZenithWebConfig,
         @InjectOrb('Validator') private readonly validator: Validator<any>,
     ) {
-    }
-
-    async registerMiddlewares() {
-        const requestDecoders = this.container.getOrbsByType<RequestDecoder>(ZENITH_ORB_TYPE_REQUEST_DECODER);
-
-        for (const requestDecoder of requestDecoders) {
-            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, requestDecoder.value) as string[];
-            for (const mimeType of mimeTypes) {
-                this.httpRequestDecoders.set(mimeType, requestDecoder);
-            }
-            this.logger.info(`Registering request decoder '${chalk.bold(requestDecoder.name)}' with mime types [${chalk.blue(mimeTypes.join(', '))}]`);
-        }
-
-        const responseEncoders = this.container.getOrbsByType<ResponseEncoder>(ZENITH_ORB_TYPE_RESPONSE_ENCODER);
-        for (const responseEncoder of responseEncoders) {
-            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, responseEncoder.value) as string[];
-            for (const mimeType of mimeTypes) {
-                this.httpResponseEncoders.set(mimeType, responseEncoder);
-            }
-            this.logger.info(`Registering response encoder '${chalk.bold(responseEncoder.name)}' with mime types [${chalk.blue(mimeTypes.join(', '))}]`);
-        }
-
-        const exceptionHandlers = this.container.getOrbsByType<any>(ZENITH_ORB_TYPE_EXCEPTION_HANDLER);
-        for (const exceptionHandler of exceptionHandlers) {
-            this.logger.info(`Registering exception handler '${chalk.bold(exceptionHandler.name)}'`);
-            const exceptionHandlerInstance = exceptionHandler.getInstance();
-            const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(exceptionHandlerInstance)).filter((key) => key !== 'constructor');
-
-            for (const method of methods) {
-                const exceptionsHandled = Reflect.getMetadata(ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, exceptionHandlerInstance, method) as Function[];
-                this.logger.info(`Catch [${chalk.blue(exceptionsHandled.map((exception) => exception.name).join(', '))}] in '${chalk.bold(exceptionHandler.name + '.' + method)}'`);
-                exceptionsHandled.forEach((exception) => {
-                    this.exceptionHandlers.set(exception.name, { orb: exceptionHandler, handler: exceptionHandlerInstance[method].bind(exceptionHandlerInstance) as Function });
-                });
-            }
-        }
     }
 
     async registerRoutes() {
@@ -92,7 +58,14 @@ export class HttpServer {
                 const sanitizedFullPath = '/' + sanitizePath(fullPath);
 
                 const existingHandlers = this.routeHandlers[sanitizedFullPath] || {} as Record<RouteMethod, (...args: any[]) => any>;
-                existingHandlers[routeMetadata.method] = (req: BunRequest) => this.handleRequest(req, sanitizedFullPath, controllerInstance, route);
+                existingHandlers[routeMetadata.method] = (req: BunRequest) => this.httpRequestHandler.handleRequest({
+                    bunRequest: req,
+                    fullPath: sanitizedFullPath,
+                    routing: {
+                        controller: controllerInstance,
+                        method: controllerInstance[route],
+                    },
+                });
 
                 this.routeHandlers[sanitizedFullPath] = existingHandlers;
                 this.logger.info(`Registered route: ${routeMetadata.method} ${sanitizedFullPath} (${controller.value.name}.${route})`);
