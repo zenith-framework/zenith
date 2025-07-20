@@ -166,7 +166,7 @@ export class HttpRequestHandler {
                     body: httpException,
                 };
             } else {
-                this.logger.debug(`No exception handler found for error ${chalk.red(error.constructor.name)}`);
+                this.logger.warn(`No exception handler found for error ${chalk.red(error.constructor.name)} : ${error.message}`);
                 return {
                     status: 500,
                     body: new InternalServerErrorException('Internal server error'),
