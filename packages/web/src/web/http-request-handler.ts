@@ -4,13 +4,14 @@ import { webSystemLogger } from "../logger";
 import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS, ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, ZENITH_MIME_TYPES, ZENITH_ORB_TYPE_EXCEPTION_HANDLER, ZENITH_ORB_TYPE_REQUEST_DECODER, ZENITH_ORB_TYPE_RESPONSE_ENCODER } from "../decorators/metadata-keys";
 import type { ControllerMetadata, RouteParamMetadata } from "../decorators";
 import type { Route } from "./route";
-import { BadRequestException, HttpException, InternalServerErrorException, UnsupportedMediaTypeException } from "./http-exception";
+import { BadRequestException, HttpException, InternalServerErrorException, UnauthorizedException, UnsupportedMediaTypeException } from "./http-exception";
 import type { ResponseEncoder } from "./response-encoder";
 import type { RequestDecoder } from "./request-decoder";
 import chalk from "chalk";
 import type { ZenithHttpResponse } from "./zenith-http-response";
 import { ZenithRequestContext } from "./context/zenith-request-context";
 import type { Validator } from "./validator";
+import { RequestGuard } from "./request-guard";
 
 @Orb()
 export class HttpRequestHandler {
@@ -74,7 +75,7 @@ export class HttpRequestHandler {
         }
 
         const { controller, handler: method } = request.routing;
-        const controllerMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_METADATA, controller.constructor) || {} as ControllerMetadata;
+        const controllerMetadata = (Reflect.getMetadata(ZENITH_CONTROLLER_METADATA, controller.constructor) ?? {}) as ControllerMetadata;
         const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controller, method.name) as Route;
         const routeArgsMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, controller, method.name) ?? [] as RouteParamMetadata[];
 
@@ -84,7 +85,17 @@ export class HttpRequestHandler {
                 requestContext.body = body;
             }
 
-            const args = await this.prepareHandlerArgsInjection(requestContext, routeMetadata, routeArgsMetadata);
+            if (controllerMetadata.guards || routeMetadata.guards) {
+                const guards = [...(controllerMetadata.guards ?? []), ...(routeMetadata.guards ?? [])];
+                for (const guardOrb of guards) {
+                    const guard = this.container.get<RequestGuard>(guardOrb);
+                    if (guard && !await guard.accepts(request.bunRequest)) {
+                        throw new UnauthorizedException(`Guard ${guardOrb.name} rejected the request`);
+                    }
+                }
+            }
+
+            const args = await this.prepareHandlerArgsInjection(requestContext, controllerMetadata, routeMetadata, routeArgsMetadata);
             const response = await method.bind(controller)(...args);
 
             performance.mark('handle-request-end');
@@ -122,17 +133,17 @@ export class HttpRequestHandler {
         return responseEncoder.getInstance()?.encode(response);
     }
 
-    private async prepareHandlerArgsInjection(requestContext: ZenithRequestContext, routeMetadata: Route, routeArgsMetadata: RouteParamMetadata[]): Promise<any[]> {
+    private async prepareHandlerArgsInjection(requestContext: ZenithRequestContext, controllerMetadata: ControllerMetadata, routeMetadata: Route, routeArgsMetadata: RouteParamMetadata[]): Promise<any[]> {
         const injectedArgs: any[] = [];
         for (const arg of routeArgsMetadata) {
             if (arg.type === 'route') {
                 const routeParam = requestContext.request.bunRequest.params[arg.name as keyof typeof requestContext.request.bunRequest.params];
-                await this.validateRequestParam(arg, routeMetadata, routeParam);
+                await this.validateRequestParam(arg, controllerMetadata, routeMetadata, routeParam);
                 injectedArgs.push(routeParam);
             } else if (arg.type === 'query') {
                 const params = new URL(requestContext.request.bunRequest.url).searchParams;
                 const queryParam = params.get(arg.name);
-                await this.validateRequestParam(arg, routeMetadata, queryParam);
+                await this.validateRequestParam(arg, controllerMetadata, routeMetadata, queryParam);
                 injectedArgs.push(queryParam);
             } else if (arg.type === 'body') {
                 injectedArgs.push(requestContext.body);
@@ -146,8 +157,8 @@ export class HttpRequestHandler {
 
     }
 
-    private async validateRequestParam(arg: RouteParamMetadata, routeMetadata: Route, value: any): Promise<void> {
-        if (arg.validated || routeMetadata.validated) {
+    private async validateRequestParam(arg: RouteParamMetadata, controllerMetadata: ControllerMetadata, routeMetadata: Route, value: any): Promise<void> {
+        if (arg.validated || routeMetadata.validated || controllerMetadata.validated) {
             const schema = arg.validationSchema || routeMetadata.validationSchema;
             if (schema) {
                 const result = await this.validator.validate(value, schema);
