@@ -18,9 +18,9 @@ export default class TodoController {
     @Get('/')
     @Validated()
     @OpenApiResponse({ type: TodoDto })
-    getTodos(@Query('type') type: TodoTypeDto) {
-        if (type.value === 'done') {
-            return 'Hello World';
+    getTodos(@Query('type') type?: TodoTypeDto) {
+        if (type?.value === 'done') {
+            return `Hello World with type ${type.value}`;
         }
 
         return 'Hello World';

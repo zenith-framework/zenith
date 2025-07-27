@@ -11,7 +11,8 @@ import chalk from "chalk";
 import type { ZenithHttpResponse } from "./zenith-http-response";
 import { ZenithRequestContext } from "./context/zenith-request-context";
 import type { Validator } from "./validator";
-import { RequestGuard } from "./request-guard";
+import type { RequestGuard } from "./request-guard";
+import type { ZenithRequestRouting } from "./zenith-request-routing";
 
 @Orb()
 export class HttpRequestHandler {
@@ -74,10 +75,9 @@ export class HttpRequestHandler {
             throw new InternalServerErrorException('No request context found');
         }
 
-        const { controller, handler: method } = request.routing;
-        const controllerMetadata = (Reflect.getMetadata(ZENITH_CONTROLLER_METADATA, controller.constructor) ?? {}) as ControllerMetadata;
-        const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controller, method.name) as Route;
-        const routeArgsMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, controller, method.name) ?? [] as RouteParamMetadata[];
+        const controllerMetadata = (Reflect.getMetadata(ZENITH_CONTROLLER_METADATA, request.routing.controller.constructor) ?? {}) as ControllerMetadata;
+        const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, request.routing.controller, request.routing.handler.name) as Route;
+        const routeArgsMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, request.routing.controller, request.routing.handler.name) ?? [] as RouteParamMetadata[];
 
         try {
             if (this.routeExpectsBody(routeMetadata)) {
@@ -95,8 +95,8 @@ export class HttpRequestHandler {
                 }
             }
 
-            const args = await this.prepareHandlerArgsInjection(requestContext, controllerMetadata, routeMetadata, routeArgsMetadata);
-            const response = await method.bind(controller)(...args);
+            const args = await this.prepareHandlerArgsInjection(requestContext, request.routing, controllerMetadata, routeMetadata, routeArgsMetadata);
+            const response = await request.routing.handler.bind(request.routing.controller)(...args);
 
             performance.mark('handle-request-end');
             performance.measure('handle-request-duration', 'handle-request-start', 'handle-request-end');
@@ -133,17 +133,34 @@ export class HttpRequestHandler {
         return responseEncoder.getInstance()?.encode(response);
     }
 
-    private async prepareHandlerArgsInjection(requestContext: ZenithRequestContext, controllerMetadata: ControllerMetadata, routeMetadata: Route, routeArgsMetadata: RouteParamMetadata[]): Promise<any[]> {
+    private async prepareHandlerArgsInjection(
+        requestContext: ZenithRequestContext,
+        routing: ZenithRequestRouting,
+        controllerMetadata: ControllerMetadata,
+        routeMetadata: Route,
+        routeArgsMetadata: RouteParamMetadata[]
+    ): Promise<any[]> {
+        const numberOfArgs = routing.handler.length;
+        const paramTypes = Reflect.getMetadata('design:paramtypes', routing.controller, routing.handler.name) as any[];
+
         const injectedArgs: any[] = [];
-        for (const arg of routeArgsMetadata) {
+        for (let i = 0; i < numberOfArgs; i++) {
+            const arg = routeArgsMetadata[i];
+            const paramType = paramTypes[i];
+
+            if (!arg || !paramType) {
+                this.logger.warn(`Cannot process arg [${i}] of route handler ${routing.controller.constructor.name}.${routing.handler.name}`);
+                throw new InternalServerErrorException('UnprocessableRouteHandlerArgument');
+            }
+
             if (arg.type === 'route') {
                 const routeParam = requestContext.request.bunRequest.params[arg.name as keyof typeof requestContext.request.bunRequest.params];
-                await this.validateRequestParam(arg, controllerMetadata, routeMetadata, routeParam);
+                await this.validateRequestParam(arg, paramType, controllerMetadata, routeMetadata, routeParam);
                 injectedArgs.push(routeParam);
             } else if (arg.type === 'query') {
                 const params = new URL(requestContext.request.bunRequest.url).searchParams;
                 const queryParam = params.get(arg.name);
-                await this.validateRequestParam(arg, controllerMetadata, routeMetadata, queryParam);
+                await this.validateRequestParam(arg, paramType, controllerMetadata, routeMetadata, queryParam);
                 injectedArgs.push(queryParam);
             } else if (arg.type === 'body') {
                 injectedArgs.push(requestContext.body);
@@ -157,14 +174,12 @@ export class HttpRequestHandler {
 
     }
 
-    private async validateRequestParam(arg: RouteParamMetadata, controllerMetadata: ControllerMetadata, routeMetadata: Route, value: any): Promise<void> {
+    private async validateRequestParam(arg: RouteParamMetadata, paramType: any, controllerMetadata: ControllerMetadata, routeMetadata: Route, value: any): Promise<void> {
         if (arg.validated || routeMetadata.validated || controllerMetadata.validated) {
-            const schema = arg.validationSchema || routeMetadata.validationSchema;
-            if (schema) {
-                const result = await this.validator.validate(value, schema);
-                if (!result) {
-                    throw new BadRequestException();
-                }
+            const schema = arg.validationSchema || routeMetadata.validationSchema || paramType;
+            const result = await this.validator.validate(value, schema);
+            if (!result) {
+                throw new BadRequestException();
             }
         }
     }
