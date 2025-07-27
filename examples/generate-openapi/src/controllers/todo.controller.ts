@@ -9,7 +9,7 @@ const Todo = z.object({
 });
 
 class TodoDto extends createZodDto(Todo, { name: 'CustomTodoDto' }) { }
-class TodoTypeDto extends createZodDto(z.enum(['todo', 'done'])) { }
+const TodoTypeDto = createZodDto(z.enum(['todo', 'done']))
 
 @Controller('/todo')
 export default class TodoController {
