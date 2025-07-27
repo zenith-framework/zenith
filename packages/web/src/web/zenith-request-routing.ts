@@ -1,4 +1,4 @@
 export interface ZenithRequestRouting {
-    controller: Function;
-    method: Function;
+    controller: any;
+    handler: Function;
 }

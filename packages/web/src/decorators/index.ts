@@ -6,3 +6,5 @@ export * from './http-response-encoder.decorator';
 export * from './http-request-decoder.decorator';
 export * from './validated.decorator';
 export * from './guards.decorator';
+
+export * from './openapi/openapi-response.decorator';

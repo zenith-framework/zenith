@@ -44,6 +44,13 @@
         "@zenith-framework/blaze": "workspace:*",
       },
     },
+    "examples/generate-openapi": {
+      "name": "generate-openapi",
+      "version": "1.0.0",
+      "dependencies": {
+        "@zenith-framework/blaze": "workspace:*",
+      },
+    },
     "examples/no-controller": {
       "name": "@examples/no-controller",
       "version": "1.0.0",
@@ -61,15 +68,15 @@
     },
     "packages/blaze": {
       "name": "@zenith-framework/blaze",
-      "version": "0.2.1",
+      "version": "0.2.5",
       "dependencies": {
-        "@zenith-framework/core": "^0.3.1",
-        "@zenith-framework/web": "^0.3.0",
+        "@zenith-framework/core": "^0.3.4",
+        "@zenith-framework/web": "^0.3.5",
       },
     },
     "packages/core": {
       "name": "@zenith-framework/core",
-      "version": "0.3.1",
+      "version": "0.3.4",
       "dependencies": {
         "chalk": "^5.4.1",
         "dotenv": "^16.5.0",
@@ -79,11 +86,12 @@
     },
     "packages/web": {
       "name": "@zenith-framework/web",
-      "version": "0.3.0",
+      "version": "0.3.5",
       "dependencies": {
-        "@zenith-framework/core": "^0.3.1",
+        "@zenith-framework/core": "^0.3.4",
         "chalk": "^5.4.1",
         "zod": "^3.25.67",
+        "zod-openapi": "^5.3.0",
       },
     },
   },
@@ -304,6 +312,8 @@
 
     "fn.name": ["fn.name@1.1.0", "", {}, "sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw=="],
 
+    "generate-openapi": ["generate-openapi@workspace:examples/generate-openapi"],
+
     "glob-parent": ["glob-parent@6.0.2", "", { "dependencies": { "is-glob": "^4.0.3" } }, "sha512-XxwI8EOhVQgWp6iDL+3b0r86f4d6AX6zSU55HfB4ydCEuXLXc5FcYeOu+nnGftS4TEju/11rt4KJPTMgbfmv4A=="],
 
     "globals": ["globals@16.2.0", "", {}, "sha512-O+7l9tPdHCU320IigZZPj5zmRCFG9xHmx9cU8FqU2Rp+JN714seHV+2S9+JslCpY4gJwU2vOGox0wzgae/MCEg=="],
@@ -485,6 +495,8 @@
     "yoctocolors-cjs": ["yoctocolors-cjs@2.1.2", "", {}, "sha512-cYVsTjKl8b+FrnidjibDWskAv7UKOfcwaVZdp/it9n1s9fU3IkgDbhdIRKCW4JDsAlECJY0ytoVPT3sK6kideA=="],
 
     "zod": ["zod@3.25.67", "", {}, "sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw=="],
+
+    "zod-openapi": ["zod-openapi@5.3.0", "", { "peerDependencies": { "zod": "^3.25.74 || ^4.0.0" } }, "sha512-hv3DU37kV39v0MEiQ0vcL06NLS9bTHTb7FNtuFk2zhuATsi+UNcNN6y03z7qbI9NdC6LJS+Knk5shOSCUMwsDQ=="],
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
 

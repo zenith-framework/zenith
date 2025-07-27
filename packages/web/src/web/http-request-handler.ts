@@ -73,7 +73,7 @@ export class HttpRequestHandler {
             throw new InternalServerErrorException('No request context found');
         }
 
-        const { controller, method } = request.routing;
+        const { controller, handler: method } = request.routing;
         const controllerMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_METADATA, controller.constructor) || {} as ControllerMetadata;
         const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controller, method.name) as Route;
         const routeArgsMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, controller, method.name) ?? [] as RouteParamMetadata[];
@@ -90,7 +90,9 @@ export class HttpRequestHandler {
             performance.mark('handle-request-end');
             performance.measure('handle-request-duration', 'handle-request-start', 'handle-request-end');
 
-            return new Response(JSON.stringify(response), { status: 200 });
+            const mimeType = routeMetadata.mimeType ?? this.getMimeTypeForResponse(response);
+            const encodedResponse = await this.encodeResponse(response, mimeType);
+            return new Response(encodedResponse, { status: 200, headers: { 'Content-Type': mimeType } });
         } catch (error) {
             const httpResponse = await this.mapErrorToZenithHttpResponse(error);
             performance.mark('handle-request-end');
@@ -98,6 +100,26 @@ export class HttpRequestHandler {
             this.logger.error(`${chalk.red(httpResponse.status)} - [${routeMetadata.method} ${chalk.bold.italic(routeMetadata.path)}]: ${httpResponse.body.message} (${durationMeasure.duration.toFixed(2)}ms)`);
             return new Response(JSON.stringify(httpResponse.body), { status: httpResponse.status });
         }
+    }
+
+    private getMimeTypeForResponse(response: any) {
+        if (typeof response === 'string') {
+            return 'text/plain';
+        } else {
+            return 'application/json';
+        }
+    }
+
+    private async encodeResponse(response: any, mimeType: string) {
+        if (mimeType === 'text/plain') {
+            return response;
+        }
+
+        const responseEncoder = this.httpResponseEncoders.get(mimeType);
+        if (!responseEncoder) {
+            throw new UnsupportedMediaTypeException();
+        }
+        return responseEncoder.getInstance()?.encode(response);
     }
 
     private async prepareHandlerArgsInjection(requestContext: ZenithRequestContext, routeMetadata: Route, routeArgsMetadata: RouteParamMetadata[]): Promise<any[]> {

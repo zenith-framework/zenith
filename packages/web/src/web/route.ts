@@ -9,4 +9,6 @@ export interface Route {
     guards?: RequestGuardOrbProvider[];
     validated?: boolean;
     validationSchema?: any;
+    mimeType?: string;
+    openApiResponses?: { status?: number, description?: string, type: any }[];
 }

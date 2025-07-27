@@ -59,5 +59,7 @@ export const Head = (path: string = '/') => {
 
 
 export const registerRoute = (target: any, propertyKey: string, route: Route) => {
-    Reflect.defineMetadata(ZENITH_CONTROLLER_ROUTE, route, target, propertyKey);
+    const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, target, propertyKey) || {} as Route;
+    Object.assign(routeMetadata, route);
+    Reflect.defineMetadata(ZENITH_CONTROLLER_ROUTE, routeMetadata, target, propertyKey);
 };
