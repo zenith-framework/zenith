@@ -68,7 +68,7 @@
     },
     "packages/blaze": {
       "name": "@zenith-framework/blaze",
-      "version": "0.2.6",
+      "version": "0.2.7",
       "dependencies": {
         "@zenith-framework/core": "latest",
         "@zenith-framework/web": "latest",

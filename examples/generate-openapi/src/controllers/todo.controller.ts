@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Body, Controller, createZodDto, Get, OpenApiResponse, Post, Query, RouteParam } from "@zenith-framework/web";
+import { Body, Controller, createZodDto, createZodEnumDto, Get, OpenApiResponse, Post, Query, RouteParam, Validated } from "@zenith-framework/web";
 import { z } from "zod/v4";
 
 const Todo = z.object({
@@ -8,14 +8,21 @@ const Todo = z.object({
     description: z.string(),
 });
 
+const TodoType = z.enum(['todo', 'done']);
+
 class TodoDto extends createZodDto(Todo, { name: 'CustomTodoDto' }) { }
-const TodoTypeDto = createZodDto(z.enum(['todo', 'done']))
+class TodoTypeDto extends createZodEnumDto(TodoType, { name: 'CustomTodoTypeDto' }) { }
 
 @Controller('/todo')
 export default class TodoController {
     @Get('/')
+    @Validated()
     @OpenApiResponse({ type: TodoDto })
     getTodos(@Query('type') type: TodoTypeDto) {
+        if (type.value === 'done') {
+            return 'Hello World';
+        }
+
         return 'Hello World';
     }
 

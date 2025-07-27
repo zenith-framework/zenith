@@ -81,9 +81,11 @@ export class ZenithOpenApiGenerator {
                 }
 
                 paths[path] = {
+                    ...paths[path],
                     [method.toLowerCase()]: {
-                        summary: routing.controller.constructor.name,
-                        description: routing.handler.name,
+                        // TODO: add summary and description
+                        summary: undefined,
+                        description: undefined,
                         responses: openApiRouteResponses,
                         parameters: openApiRouteParameters,
                         requestBody: openApiRequestBody,
@@ -91,6 +93,7 @@ export class ZenithOpenApiGenerator {
                 };
             }
         }
+
 
         const document: OpenApiDocument = {
             openapi: '3.1.0',
