@@ -1,4 +1,4 @@
-import { declareOrb, setOrbType, ZENITH_ORB_INJECT_NAME, ZENITH_ORB_PROVIDE } from "@zenith-framework/core";
+import { declareOrb, setOrbType } from "@zenith-framework/core";
 import { ZENITH_CONTROLLER_METADATA, ZENITH_ORB_TYPE_CONTROLLER } from "./metadata-keys";
 import type { RequestGuardOrbProvider } from "../web/request-guard";
 

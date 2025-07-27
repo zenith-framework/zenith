@@ -7,7 +7,6 @@ import { Controller, Get, type RouteParamMetadata } from "../..";
 import { webSystemLogger } from "../../logger";
 import { ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS } from "../../decorators/metadata-keys";
 import { createSchema } from "zod-openapi";
-import { LoginWithEmailPasswordRequest } from "../../../../../examples/auth-service/src/auth/infrastructure/controllers/request/login-with-email-password.request";
 
 @Orb()
 export class ZenithOpenApiGenerator {

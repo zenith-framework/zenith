@@ -184,7 +184,7 @@ export class HttpRequestHandler {
         }
     }
 
-    private async decodeBody(request: ZenithRequest, routeMetadata: Route) {
+    private async decodeBody(request: ZenithRequest) {
         // TODO: should we fall back to json if no accept header is provided?
         const mimeType = request.bunRequest.headers.get('content-type') ?? 'application/json';
         const requestDecoder = this.httpRequestDecoders.get(mimeType);
