@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Body, Controller, createZodDto, Get, OpenApiResponse, Post, Query, RouteParam } from "@zenith-framework/web";
 import { z } from "zod/v4";
 
@@ -27,6 +28,11 @@ export default class TodoController {
     @Post('/')
     @OpenApiResponse({ type: TodoDto })
     createTodo(@Body() todo: TodoDto) {
+        return 'Hello World';
+    }
+
+    @Get('/test')
+    getTodoTest() {
         return 'Hello World';
     }
 }

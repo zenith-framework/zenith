@@ -50,31 +50,33 @@ export class ZenithOpenApiGenerator {
                 }
 
                 const routeParameterTypes = Reflect.getMetadata('design:paramtypes', routing.controller, routing.handler.name);
-                for (const parameter of routeParameters) {
-                    const routeParameterType = routeParameterTypes[parameter.index];
-                    if (parameter.type === 'body') {
-                        openApiRequestBody = {
-                            content: {
-                                // TODO: add other content types
-                                'application/json': { schema: this.openApiSchemaForType(routeParameterType) }
+                if (routeParameterTypes?.length) {
+                    for (const parameter of routeParameters) {
+                        const routeParameterType = routeParameterTypes[parameter.index];
+                        if (parameter.type === 'body') {
+                            openApiRequestBody = {
+                                content: {
+                                    // TODO: add other content types
+                                    'application/json': { schema: this.openApiSchemaForType(routeParameterType) }
+                                }
                             }
+                        } else if (parameter.type === 'query') {
+                            openApiRouteParameters.push({
+                                name: parameter.name,
+                                in: 'query',
+                                // TODO: make required configurable
+                                required: true,
+                                schema: this.openApiSchemaForType(routeParameterType)
+                            });
+                        } else if (parameter.type === 'route') {
+                            openApiRouteParameters.push({
+                                name: parameter.name,
+                                in: 'path',
+                                // TODO: make required configurable
+                                required: true,
+                                schema: this.openApiSchemaForType(routeParameterType)
+                            });
                         }
-                    } else if (parameter.type === 'query') {
-                        openApiRouteParameters.push({
-                            name: parameter.name,
-                            in: 'query',
-                            // TODO: make required configurable
-                            required: true,
-                            schema: this.openApiSchemaForType(routeParameterType)
-                        });
-                    } else if (parameter.type === 'route') {
-                        openApiRouteParameters.push({
-                            name: parameter.name,
-                            in: 'path',
-                            // TODO: make required configurable
-                            required: true,
-                            schema: this.openApiSchemaForType(routeParameterType)
-                        });
                     }
                 }
 

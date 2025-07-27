@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import { Zenith } from "@zenith-framework/core";
 import { ZenithWebSystem } from "@zenith-framework/web";
 
