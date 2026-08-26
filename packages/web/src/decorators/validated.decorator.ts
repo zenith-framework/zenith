@@ -1,7 +1,7 @@
-import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS, ZENITH_VALIDATED_SCHEMA } from "./metadata-keys";
+import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS } from "./metadata-keys";
+import type { DecoratorTarget } from "@zenith-framework/core";
 import { webSystemLogger } from "../logger";
 import type { ControllerMetadata } from "./controller.decorator";
-import chalk from "chalk";
 import type { Route } from "../web/route";
 import type { RouteParamMetadata } from "./route-param";
 
@@ -16,7 +16,7 @@ import type { RouteParamMetadata } from "./route-param";
  * @param schema The schema to validate the request body against
  * @returns A decorator that validates the request body against the schema
  */
-export const Validated = (schema?: any) => (target: any, propertyKey?: string, descriptorOrIndex?: PropertyDescriptor | number) => {
+export const Validated = (schema?: unknown) => (target: DecoratorTarget, propertyKey?: string, descriptorOrIndex?: PropertyDescriptor | number) => {
     if (!propertyKey) {
         if (schema) {
             webSystemLogger.warn('Validated decorator used on a controller class with a schema. The schema will not be used.');

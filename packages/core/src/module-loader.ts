@@ -14,7 +14,9 @@ export class ModuleLoader {
         let nodeModules: string[] = [];
         try {
             nodeModules = readdirSync(`${root}/node_modules`);
-        } catch { }
+        } catch {
+            // No node_modules directory here, which is the expected case.
+        }
         if (nodeModules.length > 0) {
             this.logger.error(`Node modules found in ${root}, skipping module scan. Best practice with Zenith: move your project files in a 'src' directory.`);
             throw new Error('Node modules found in root directory, skipping module scan.');

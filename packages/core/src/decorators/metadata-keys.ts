@@ -5,6 +5,6 @@ export const ZENITH_ORB_INJECT_OPTIONS = '__ZENITH_ORB_INJECT_OPTIONS';
 
 export const ZENITH_ORB_TYPE_CONFIG = '__ZENITH_ORB_TYPE_CONFIG';
 
-export function setOrbType(target: any, type: string) {
+export function setOrbType(target: object, type: string) {
     Reflect.defineMetadata(ZENITH_ORB_TYPE, type, target);
 }  

@@ -9,10 +9,14 @@ import type { ResponseEncoder } from "./response-encoder";
 import type { RequestDecoder } from "./request-decoder";
 import chalk from "chalk";
 import type { ZenithHttpResponse } from "./zenith-http-response";
+import type { Constructor } from "@zenith-framework/core";
 import { ZenithRequestContext } from "./context/zenith-request-context";
 import type { Validator } from "./validator";
 import type { RequestGuard } from "./request-guard";
 import type { ZenithRequestRouting } from "./zenith-request-routing";
+
+/** What `new Response(...)` accepts as a body. `BodyInit` is not global without the DOM lib. */
+type ResponseBody = ConstructorParameters<typeof Response>[0];
 
 interface ExceptionHandlerEntry {
     orb: OrbWrapper<unknown>;
@@ -29,7 +33,7 @@ export class HttpRequestHandler {
     constructor(
         private readonly container: OrbContainer,
         // @InjectOrb('ZenithWebConfig') private readonly config: ZenithWebConfig,
-        @InjectOrb('Validator') private readonly validator: Validator<any>,
+        @InjectOrb('Validator') private readonly validator: Validator<unknown>,
     ) {
     }
 
@@ -37,7 +41,7 @@ export class HttpRequestHandler {
         const requestDecoders = this.container.getOrbsByType<RequestDecoder>(ZENITH_ORB_TYPE_REQUEST_DECODER);
 
         for (const requestDecoder of requestDecoders) {
-            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, requestDecoder.value) as string[];
+            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, requestDecoder.value as object) as string[];
             for (const mimeType of mimeTypes) {
                 this.httpRequestDecoders.set(mimeType, requestDecoder);
             }
@@ -46,24 +50,34 @@ export class HttpRequestHandler {
 
         const responseEncoders = this.container.getOrbsByType<ResponseEncoder>(ZENITH_ORB_TYPE_RESPONSE_ENCODER);
         for (const responseEncoder of responseEncoders) {
-            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, responseEncoder.value) as string[];
+            const mimeTypes = Reflect.getMetadata(ZENITH_MIME_TYPES, responseEncoder.value as object) as string[];
             for (const mimeType of mimeTypes) {
                 this.httpResponseEncoders.set(mimeType, responseEncoder);
             }
             this.logger.info(`Registering response encoder '${chalk.bold(responseEncoder.name)}' with mime types [${chalk.blue(mimeTypes.join(', '))}]`);
         }
 
-        const exceptionHandlers = this.container.getOrbsByType<any>(ZENITH_ORB_TYPE_EXCEPTION_HANDLER);
+        const exceptionHandlers = this.container.getOrbsByType<object>(ZENITH_ORB_TYPE_EXCEPTION_HANDLER);
         for (const exceptionHandler of exceptionHandlers) {
             this.logger.info(`Registering exception handler '${chalk.bold(exceptionHandler.name)}'`);
             const exceptionHandlerInstance = exceptionHandler.getInstance();
+            if (!exceptionHandlerInstance) {
+                this.logger.error(`Exception handler ${exceptionHandler.name} has no instance and cannot be registered.`);
+                continue;
+            }
             const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(exceptionHandlerInstance)).filter((key) => key !== 'constructor');
 
             for (const method of methods) {
-                const exceptionsHandled = Reflect.getMetadata(ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, exceptionHandlerInstance, method) as Function[];
+                // Not every method on an exception handler carries @Catch.
+                const exceptionsHandled = Reflect.getMetadata(ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, exceptionHandlerInstance, method) as Constructor[] | undefined;
+                const handler = (exceptionHandlerInstance as Record<string, ExceptionHandlerEntry['handler'] | undefined>)[method];
+                if (!exceptionsHandled || !handler) {
+                    continue;
+                }
+
                 this.logger.info(`Catch [${chalk.blue(exceptionsHandled.map((exception) => exception.name).join(', '))}] in '${chalk.bold(exceptionHandler.name + '.' + method)}'`);
                 exceptionsHandled.forEach((exception) => {
-                    this.exceptionHandlers.set(exception.name, { orb: exceptionHandler, handler: exceptionHandlerInstance[method].bind(exceptionHandlerInstance) as ExceptionHandlerEntry['handler'] });
+                    this.exceptionHandlers.set(exception.name, { orb: exceptionHandler, handler: handler.bind(exceptionHandlerInstance) });
                 });
             }
         }
@@ -123,7 +137,7 @@ export class HttpRequestHandler {
         return method === 'POST' ? 201 : 200;
     }
 
-    private getMimeTypeForResponse(response: any) {
+    private getMimeTypeForResponse(response: unknown) {
         if (typeof response === 'string') {
             return 'text/plain';
         } else {
@@ -131,16 +145,16 @@ export class HttpRequestHandler {
         }
     }
 
-    private async encodeResponse(response: any, mimeType: string) {
+    private async encodeResponse(response: unknown, mimeType: string): Promise<ResponseBody> {
         if (mimeType === 'text/plain') {
-            return response;
+            return String(response);
         }
 
         const responseEncoder = this.httpResponseEncoders.get(mimeType);
         if (!responseEncoder) {
             throw new UnsupportedMediaTypeException();
         }
-        return responseEncoder.getInstance()?.encode(response);
+        return await responseEncoder.getInstance()?.encode(response) as ResponseBody;
     }
 
     private async prepareHandlerArgsInjection(
@@ -149,11 +163,11 @@ export class HttpRequestHandler {
         controllerMetadata: ControllerMetadata,
         routeMetadata: Route,
         routeArgsMetadata: RouteParamMetadata[]
-    ): Promise<any[]> {
+    ): Promise<unknown[]> {
         const numberOfArgs = routing.handler.length;
-        const paramTypes = (Reflect.getMetadata('design:paramtypes', routing.controller, routing.handler.name) ?? []) as any[];
+        const paramTypes = (Reflect.getMetadata('design:paramtypes', routing.controller, routing.handler.name) ?? []) as Constructor[];
 
-        const injectedArgs: any[] = [];
+        const injectedArgs: unknown[] = [];
         for (let i = 0; i < numberOfArgs; i++) {
             // routeArgsMetadata is keyed by parameter index, so this stays aligned with
             // the handler signature no matter what order the decorators were applied in.
@@ -185,7 +199,7 @@ export class HttpRequestHandler {
 
     }
 
-    private async validateRequestParam(arg: RouteParamMetadata, paramType: any, controllerMetadata: ControllerMetadata, routeMetadata: Route, value: any): Promise<void> {
+    private async validateRequestParam(arg: RouteParamMetadata, paramType: unknown, controllerMetadata: ControllerMetadata, routeMetadata: Route, value: unknown): Promise<void> {
         if (!(arg.validated || routeMetadata.validated || controllerMetadata.validated)) {
             return;
         }
@@ -224,13 +238,13 @@ export class HttpRequestHandler {
      * chain so a handler for a base error also catches its subclasses.
      */
     private findExceptionHandler(error: Error): ExceptionHandlerEntry | undefined {
-        let ctor: any = error.constructor;
+        let ctor = error.constructor as Constructor | null;
         while (ctor && ctor !== Object && ctor.name) {
             const handler = this.exceptionHandlers.get(ctor.name);
             if (handler) {
                 return handler;
             }
-            ctor = Object.getPrototypeOf(ctor);
+            ctor = Object.getPrototypeOf(ctor) as Constructor | null;
         }
         return undefined;
     }

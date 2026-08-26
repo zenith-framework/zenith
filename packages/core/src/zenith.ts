@@ -8,6 +8,7 @@ import { ZENITH_ORB_TYPE_CONFIG } from './decorators/metadata-keys';
 import { OrbContainer } from "./ioc/container";
 import { ModuleLoader } from "./module-loader";
 import type { ZenithSystem, ZenithSystemClass } from './zenith-system';
+import type { Constructor } from './types';
 import { ZENITH_CONTAINER_ORB, ZENITH_CONFIG_ORB } from './ioc/reserved-orb-names';
 
 export class Zenith {
@@ -58,7 +59,7 @@ export class Zenith {
       this.resolveSystems();
 
       this.container.getOrbsByType(ZENITH_ORB_TYPE_CONFIG).forEach(orb => {
-        this.logger.info(`Registered config ${chalk.blue(orb.name)} using ${chalk.blue((orb.value as any).name)}`);
+        this.logger.info(`Registered config ${chalk.blue(orb.name)} using ${chalk.blue((orb.value as Constructor).name)}`);
       });
 
       await this.container.initOrbs();

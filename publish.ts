@@ -29,9 +29,19 @@ const packagePath = `${packageDir}/package.json`;
 const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 const packageVersion = packageJson.version;
 
-const patchVersion = inc(packageVersion, 'patch');
-const minorVersion = inc(packageVersion, 'minor');
-const majorVersion = inc(packageVersion, 'major');
+// inc() returns null for a version it cannot parse, which would otherwise put a
+// null straight into the version picker.
+const bump = (release: 'patch' | 'minor' | 'major'): string => {
+  const next = inc(packageVersion, release);
+  if (!next) {
+    throw new Error(`Cannot compute the ${release} version: '${packageVersion}' in ${packagePath} is not valid semver.`);
+  }
+  return next;
+};
+
+const patchVersion = bump('patch');
+const minorVersion = bump('minor');
+const majorVersion = bump('major');
 
 const { newVersion } = await inquirer
   .prompt([

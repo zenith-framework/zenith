@@ -28,7 +28,7 @@ export class ConfigLoader {
 
     async loadConfig(env?: string): Promise<ZenithConfig> {
         const configFolder = await this.findFolderWithNearestConfigFile(env);
-        const values: Record<string, any> = {};
+        const values: Record<string, string> = {};
         if (!configFolder) {
             return new ZenithConfig(values);
         }

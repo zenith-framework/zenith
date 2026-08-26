@@ -5,7 +5,7 @@ export interface InjectOrbOptions {
 }
 
 export function InjectOrb(name: string, options: InjectOrbOptions = {}): ParameterDecorator {
-    return (target: Object, propertyKey: string | symbol | undefined, parameterIndex: number) => {
+    return (target: object, propertyKey: string | symbol | undefined, parameterIndex: number) => {
         if (propertyKey) {
             throw new Error('InjectOrb can only be used on constructor parameters');
         }

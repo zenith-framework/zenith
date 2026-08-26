@@ -7,5 +7,5 @@ const RESERVED_ORB_NAMES = [
 ] as const;
 
 export function isReservedOrbName(name: string): boolean {
-    return RESERVED_ORB_NAMES.includes(name as any);
+    return (RESERVED_ORB_NAMES as readonly string[]).includes(name);
 }

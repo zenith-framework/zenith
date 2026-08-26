@@ -29,13 +29,13 @@ export default class TodoController {
     @Get('/:id')
     @OpenApiResponse({ type: TodoDto })
     getTodoById(@RouteParam('id') id: string) {
-        return 'Hello World';
+        return `Hello World ${id}`;
     }
 
     @Post('/')
     @OpenApiResponse({ type: TodoDto })
     createTodo(@Body() todo: TodoDto) {
-        return 'Hello World';
+        return todo;
     }
 
     @Get('/test')

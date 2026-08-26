@@ -3,7 +3,7 @@ import type { RequestDecoder } from "./request-decoder";
 
 @HttpRequestDecoder(['application/json'])
 export class JsonRequestDecoder implements RequestDecoder {
-    async decode(request: Request): Promise<any> {
+    async decode(request: Request): Promise<unknown> {
         return await request.json();
     }
 }

@@ -6,8 +6,8 @@ export interface OpenApiDocument {
     };
     paths: Record<string, OpenApiPath>;
     components?: {
-        schemas: Record<string, any>;
-        responses?: Record<string, any>;
+        schemas: Record<string, OpenApiSchema>;
+        responses?: Record<string, OpenApiResponse>;
     };
 }
 
@@ -30,8 +30,11 @@ export interface OpenApiRequestBody {
     content: Record<string, OpenApiMediaType>;
 }
 
+/** A JSON Schema fragment, or a $ref pointing into components.schemas. */
+export type OpenApiSchema = Record<string, unknown>;
+
 export interface OpenApiMediaType {
-    schema: any;
+    schema: OpenApiSchema;
 }
 
 export interface OpenApiResponse {
@@ -43,5 +46,5 @@ export interface OpenApiParameter {
     name: string;
     in: 'query' | 'path' | 'header' | 'cookie';
     required: boolean;
-    schema: any;
+    schema: OpenApiSchema;
 }

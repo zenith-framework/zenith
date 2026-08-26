@@ -1,3 +1,3 @@
 export interface RequestDecoder {
-    decode(request: Request): Promise<any>;
+    decode(request: Request): Promise<unknown>;
 }

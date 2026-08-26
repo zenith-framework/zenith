@@ -1,4 +1,5 @@
 export * from './config';
+export * from './types';
 export * from './decorators';
 export * from './ioc';
 export * from './logger';

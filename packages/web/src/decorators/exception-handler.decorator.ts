@@ -1,4 +1,5 @@
-import { declareOrb, setOrbType, ZENITH_ORB_TYPE } from "@zenith-framework/core";
+import { declareOrb, setOrbType } from "@zenith-framework/core";
+import type { Constructor, DecoratorTarget } from "@zenith-framework/core";
 import { ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, ZENITH_ORB_TYPE_EXCEPTION_HANDLER } from "./metadata-keys";
 
 /**
@@ -10,11 +11,11 @@ import { ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, ZENITH_ORB_TYPE_EXCEPTION_HANDLER 
  * @param exceptions - The exception or exceptions to handle.
  * @returns A decorator function.
  */
-export const ExceptionHandler = (target: any) => {
+export const ExceptionHandler = (target: Constructor) => {
     declareOrb(target);
     setOrbType(target, ZENITH_ORB_TYPE_EXCEPTION_HANDLER);
 };
 
-export const Catch = (...exceptions: Function[]) => (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+export const Catch = (...exceptions: Constructor[]) => (target: DecoratorTarget, propertyKey: string) => {
     Reflect.defineMetadata(ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, exceptions, target, propertyKey);
 };

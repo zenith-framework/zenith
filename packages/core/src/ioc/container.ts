@@ -6,12 +6,13 @@ import type { InjectOrbOptions } from "../decorators";
 import { CyclicDependencyError } from "./cyclic-dependencies.error";
 import chalk from "chalk";
 import { getInjectableOrbName } from "./utils";
+import type { Constructor } from "../types";
 import { hasOnDestroy, hasOnInit } from "./orb-lifecycle";
 import { isReservedOrbName } from "./reserved-orb-names";
 
 export class OrbContainer {
   private readonly logger = zenithLogger('OrbContainer');
-  private readonly orbs: Map<string, OrbWrapper<any>>;
+  private readonly orbs: Map<string, OrbWrapper<unknown>>;
   /** Order in which orbs were constructed: dependencies before their dependents. */
   private readonly initialisationOrder: string[] = [];
 
@@ -19,26 +20,30 @@ export class OrbContainer {
     this.orbs = new Map();
   }
 
-  registerOrb<T>(orbRaw: (new (...args: any[]) => T) | T, options: { name?: string, source?: string } = {}) {
+  /**
+   * `T` describes the instance the orb resolves to. It cannot be inferred from an
+   * `unknown` provider, so callers that need the typed wrapper state it, as with get().
+   */
+  registerOrb<T = unknown>(orbRaw: unknown, options: { name?: string, source?: string } = {}): OrbWrapper<T> {
     const orbName = options.name ?? getInjectableOrbName(orbRaw);
     if (!orbName) {
       throw new Error('Cannot register orb without a name')
     }
-    let orb: OrbWrapper<any> | undefined;
-    const type = Reflect.getMetadata(ZENITH_ORB_TYPE, typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor);
+    let orb: OrbWrapper<T>;
+    const type = Reflect.getMetadata(ZENITH_ORB_TYPE, typeof orbRaw === 'function' ? orbRaw : (orbRaw as object).constructor);
 
     this.assertNameIsAvailable(orbName, orbRaw, type, options.source);
 
     if (orbRaw instanceof Function) {
-      assertDecoratorMetadataIsEmitted(orbRaw);
-      const dependencies = Reflect.getMetadata('design:paramtypes', orbRaw) as (any[] | undefined) ?? [];
+      assertDecoratorMetadataIsEmitted(orbRaw as Constructor);
+      const dependencies = Reflect.getMetadata('design:paramtypes', orbRaw) as (Constructor[] | undefined) ?? [];
       const dependenciesNames = dependencies.map((dependency, index) => this.getInjectableOrbNameFromParameter(orbRaw, index, dependency.name));
-      orb = new OrbWrapper<typeof orbRaw>(orbName, type, orbRaw, dependenciesNames, null, options.source);
+      orb = new OrbWrapper<T>(orbName, type, orbRaw, dependenciesNames, null, options.source);
     } else {
-      orb = new OrbWrapper<T>(orbName, type, orbRaw, [], orbRaw, options.source);
+      orb = new OrbWrapper<T>(orbName, type, orbRaw, [], orbRaw as T, options.source);
     }
 
-    this.orbs.set(orb.name, orb);
+    this.orbs.set(orb.name, orb as OrbWrapper<unknown>);
     this.logger.debug(`Registered orb ${chalk.blue(orb.name)}`);
     return orb;
   }
@@ -166,7 +171,7 @@ export class OrbContainer {
       }
 
       try {
-        const instance = this.provideInstance(orb.value);
+        const instance = this.provideInstance(orb.value as Constructor);
         orb.setInstance(instance);
       } catch (error) {
         this.logger.error(`Error providing instance for ${orb.name}: ${error instanceof Error ? error.stack : String(error)}`);
@@ -232,44 +237,47 @@ export class OrbContainer {
   }
 
   getOrbsByType<T>(type: string): OrbWrapper<T>[] {
-    return Array.from(this.orbs.values()).filter(orb => orb.type === type) as OrbWrapper<T>[];
+    return Array.from(this.orbs.values()).filter(orb => orb.type === type) as unknown as OrbWrapper<T>[];
   }
 
-  private getInjectableOrbNameFromParameter<T>(orbRaw: (new (...args: any[]) => T) | T, parameterIndex: number, parameterTypeName: string): string {
-    const base = typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor;
-    const injectName = Reflect.getMetadata(ZENITH_ORB_INJECT_NAME, base, parameterIndex.toString());
+  private getInjectableOrbNameFromParameter(orbRaw: unknown, parameterIndex: number, parameterTypeName: string): string {
+    const base = typeof orbRaw === 'function' ? orbRaw : (orbRaw as object).constructor;
+    const injectName = Reflect.getMetadata(ZENITH_ORB_INJECT_NAME, base, parameterIndex.toString()) as string | undefined;
     return injectName ?? parameterTypeName;
   }
 
-  private provideInstance(orbRaw: (new (...args: any[]) => any)): any {
-    const parameters = Reflect.getMetadata('design:paramtypes', orbRaw) as (any[] | undefined) ?? [];
-    if (!parameters) {
-      throw new Error(`Orb ${orbRaw.name} is not injectable`);
-    }
-    const paramToOrb = parameters.map((parameter, index) => {
-      const name = Reflect.getMetadata(ZENITH_ORB_INJECT_NAME, orbRaw, index.toString()) ?? parameter.name;
-      const options = Reflect.getMetadata(ZENITH_ORB_INJECT_OPTIONS, orbRaw, index.toString()) ?? {} as InjectOrbOptions;
+  private provideInstance(orbRaw: Constructor): unknown {
+    const parameters = Reflect.getMetadata('design:paramtypes', orbRaw) as (Constructor[] | undefined) ?? [];
+    const resolvedDependencies = parameters.map((parameter, index) => {
+      const name = (Reflect.getMetadata(ZENITH_ORB_INJECT_NAME, orbRaw, index.toString()) as string | undefined) ?? parameter.name;
+      const options = (Reflect.getMetadata(ZENITH_ORB_INJECT_OPTIONS, orbRaw, index.toString()) as InjectOrbOptions | undefined) ?? {};
       if (!name) {
         throw new Error(`Cannot inject parameter ${index} of orb ${orbRaw.name}`);
       }
-      const orb = this.get(name) as OrbWrapper<typeof parameter>;
-      if (!orb && !options.allowAbsent) {
+      const dependency = this.get(name);
+      if (!dependency && !options.allowAbsent) {
         throw new Error(`Orb ${name} not found`);
       }
-      return orb;
+      return dependency;
     });
-    const instance = new orbRaw(...paramToOrb);
-    return instance;
+    return new orbRaw(...resolvedDependencies);
   }
 
-  get<T>(provider: (new (...args: any[]) => T) | string): T | undefined {
+  /**
+   * Resolving by class infers the instance type. Resolving by name cannot, so it is a
+   * separate overload: without one, `T | undefined` has no inference site and collapses
+   * to `undefined` at the call site.
+   */
+  get<T>(orbClass: Constructor<T>): T | undefined;
+  get<T = unknown>(orbName: string): T | undefined;
+  get<T>(provider: Constructor<T> | string): T | undefined {
     const name = typeof provider === 'string' ? provider : getInjectableOrbName(provider);
     const orb = this.orbs.get(name);
     if (!orb) {
       return undefined;
     }
 
-    return orb.getInstance();
+    return orb.getInstance() as T | undefined;
   }
 
   registerModules(modules: ZenithModule[]) {
@@ -304,7 +312,7 @@ export class OrbContainer {
  * with zero arguments, and the failure only surfaces much later as an undefined
  * property access. Detect it at registration and say what is actually wrong.
  */
-function assertDecoratorMetadataIsEmitted(orbRaw: new (...args: any[]) => unknown) {
+function assertDecoratorMetadataIsEmitted(orbRaw: Constructor) {
   if (orbRaw.length === 0) {
     return;
   }
