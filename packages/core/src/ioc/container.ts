@@ -6,10 +6,13 @@ import type { InjectOrbOptions } from "../decorators";
 import { CyclicDependencyError } from "./cyclic-dependencies.error";
 import chalk from "chalk";
 import { getInjectableOrbName } from "./utils";
+import { hasOnDestroy, hasOnInit } from "./orb-lifecycle";
 
 export class OrbContainer {
   private readonly logger = zenithLogger('OrbContainer');
   private readonly orbs: Map<string, OrbWrapper<any>>;
+  /** Order in which orbs were constructed: dependencies before their dependents. */
+  private readonly initialisationOrder: string[] = [];
 
   constructor() {
     this.orbs = new Map();
@@ -122,9 +125,14 @@ export class OrbContainer {
       throw new CyclicDependencyError(cycles);
     }
 
+    // topologicalSortedOrbs runs dependents -> dependencies; reverse it so every orb
+    // is built (and later initialised) after everything it depends on.
+    const dependenciesFirst = [...topologicalSortedOrbs].reverse();
     const failedInjections: string[] = [];
-    while (topologicalSortedOrbs.length > 0) {
-      const orb = this.orbs.get(topologicalSortedOrbs.pop()!)!;
+
+    for (const orbName of dependenciesFirst) {
+      const orb = this.orbs.get(orbName)!;
+      this.initialisationOrder.push(orbName);
       if (orb.getInstance()) {
         continue;
       }
@@ -143,12 +151,58 @@ export class OrbContainer {
       this.logger.error(`Failed to instantiate [${chalk.red(failedInjections.join(', '))}]`);
       throw new Error(`Failed to instantiate [${failedInjections.join(', ')}]`);
     }
+  }
 
-    if (topologicalSortedOrbs.length > 0) {
-      this.logger.error(`Cyclic dependency detected: ${topologicalSortedOrbs.join(' -> ')}`);
-      throw new CyclicDependencyError([topologicalSortedOrbs]);
+  /**
+   * Runs `onInit` on every orb that declares one, in dependency order.
+   *
+   * This is the seam between "the graph is constructed" and "the systems start":
+   * the place for an orb to open a connection, warm a cache, or run a migration.
+   */
+  async initOrbs(): Promise<void> {
+    for (const orbName of this.initialisationOrder) {
+      const instance = this.orbs.get(orbName)?.getInstance();
+      if (!hasOnInit(instance)) {
+        continue;
+      }
+
+      this.logger.debug(`Initializing orb ${chalk.blue(orbName)}`);
+      try {
+        await instance.onInit();
+      } catch (error) {
+        this.logger.error(`Error initializing ${chalk.red(orbName)}: ${error instanceof Error ? error.stack : String(error)}`);
+        throw error;
+      }
     }
   }
+
+  /**
+   * Runs `onDestroy` on every orb that declares one, in reverse initialisation order.
+   *
+   * Orbs registered after startup are destroyed first, since nothing that was already
+   * running can depend on them. Failures are logged so one bad teardown cannot strand
+   * the resources held by the others.
+   */
+  async destroyOrbs(): Promise<void> {
+    const initialised = new Set(this.initialisationOrder);
+    const registeredLate = [...this.orbs.keys()].filter(name => !initialised.has(name));
+    const destructionOrder = [...registeredLate, ...[...this.initialisationOrder].reverse()];
+
+    for (const orbName of destructionOrder) {
+      const instance = this.orbs.get(orbName)?.getInstance();
+      if (!hasOnDestroy(instance)) {
+        continue;
+      }
+
+      this.logger.debug(`Destroying orb ${chalk.blue(orbName)}`);
+      try {
+        await instance.onDestroy();
+      } catch (error) {
+        this.logger.error(`Error destroying ${chalk.red(orbName)}: ${error instanceof Error ? error.stack : String(error)}`);
+      }
+    }
+  }
+
 
   getOrbsByType<T>(type: string): OrbWrapper<T>[] {
     return Array.from(this.orbs.values()).filter(orb => orb.type === type) as OrbWrapper<T>[];

@@ -30,6 +30,34 @@ zenith.with(ZenithWebSystem); // Optional if you don't want to use web server fe
 await zenith.start();
 ```
 
+## Orb lifecycle
+
+Orbs are constructed in dependency order, then initialised in that same order before
+any system starts. Implement `OnOrbInit` for work that has to happen before the
+application serves traffic, and `OnOrbDestroy` to release what it holds.
+
+```ts
+import { Orb, type OnOrbDestroy, type OnOrbInit } from '@zenith-framework/core';
+
+@Orb()
+export class ConnectionPool implements OnOrbInit, OnOrbDestroy {
+    async onInit() {
+        await this.connect();   // every orb this one depends on is already initialised
+    }
+
+    async onDestroy() {
+        await this.close();
+    }
+}
+```
+
+`onInit` runs dependencies-first, so an orb can use anything it injected. A failing
+`onInit` aborts startup. `onDestroy` runs in reverse on `SIGINT`/`SIGTERM`, after the
+systems have stopped, so an orb is released before the orbs it depends on. A failing
+`onDestroy` is logged and the remaining orbs are still destroyed.
+
+See `examples/lifecycle` for a runnable version.
+
 ## Install & running examples
 
 To install dependencies:
