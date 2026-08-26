@@ -10,5 +10,6 @@ export interface Route {
     validated?: boolean;
     validationSchema?: any;
     mimeType?: string;
+    statusCode?: number;
     openApiResponses?: { status?: number, description?: string, type: any }[];
 }

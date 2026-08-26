@@ -3,7 +3,7 @@ import type { ZenithRequest } from "./zenith-request";
 import { webSystemLogger } from "../logger";
 import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS, ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, ZENITH_MIME_TYPES, ZENITH_ORB_TYPE_EXCEPTION_HANDLER, ZENITH_ORB_TYPE_REQUEST_DECODER, ZENITH_ORB_TYPE_RESPONSE_ENCODER } from "../decorators/metadata-keys";
 import type { ControllerMetadata, RouteParamMetadata } from "../decorators";
-import type { Route } from "./route";
+import type { Route, RouteMethod } from "./route";
 import { BadRequestException, HttpException, InternalServerErrorException, UnauthorizedException, UnsupportedMediaTypeException } from "./http-exception";
 import type { ResponseEncoder } from "./response-encoder";
 import type { RequestDecoder } from "./request-decoder";
@@ -14,12 +14,17 @@ import type { Validator } from "./validator";
 import type { RequestGuard } from "./request-guard";
 import type { ZenithRequestRouting } from "./zenith-request-routing";
 
+interface ExceptionHandlerEntry {
+    orb: OrbWrapper<unknown>;
+    handler: (error: Error) => HttpException | Promise<HttpException>;
+}
+
 @Orb()
 export class HttpRequestHandler {
     private readonly logger = webSystemLogger;
     private readonly httpRequestDecoders: Map<string, OrbWrapper<RequestDecoder>> = new Map();
     private readonly httpResponseEncoders: Map<string, OrbWrapper<ResponseEncoder>> = new Map();
-    private readonly exceptionHandlers: Map<string, { orb: OrbWrapper<any>, handler: Function }> = new Map();
+    private readonly exceptionHandlers: Map<string, ExceptionHandlerEntry> = new Map();
 
     constructor(
         private readonly container: OrbContainer,
@@ -58,7 +63,7 @@ export class HttpRequestHandler {
                 const exceptionsHandled = Reflect.getMetadata(ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, exceptionHandlerInstance, method) as Function[];
                 this.logger.info(`Catch [${chalk.blue(exceptionsHandled.map((exception) => exception.name).join(', '))}] in '${chalk.bold(exceptionHandler.name + '.' + method)}'`);
                 exceptionsHandled.forEach((exception) => {
-                    this.exceptionHandlers.set(exception.name, { orb: exceptionHandler, handler: exceptionHandlerInstance[method].bind(exceptionHandlerInstance) as Function });
+                    this.exceptionHandlers.set(exception.name, { orb: exceptionHandler, handler: exceptionHandlerInstance[method].bind(exceptionHandlerInstance) as ExceptionHandlerEntry['handler'] });
                 });
             }
         }
@@ -81,7 +86,7 @@ export class HttpRequestHandler {
 
         try {
             if (this.routeExpectsBody(routeMetadata)) {
-                const body = await this.decodeBody(request, routeMetadata);
+                const body = await this.decodeBody(request);
                 requestContext.body = body;
             }
 
@@ -103,7 +108,8 @@ export class HttpRequestHandler {
 
             const mimeType = routeMetadata.mimeType ?? this.getMimeTypeForResponse(response);
             const encodedResponse = await this.encodeResponse(response, mimeType);
-            return new Response(encodedResponse, { status: 200, headers: { 'Content-Type': mimeType } });
+            const status = routeMetadata.statusCode ?? this.getDefaultStatusForMethod(routeMetadata.method);
+            return new Response(encodedResponse, { status, headers: { 'Content-Type': mimeType } });
         } catch (error) {
             const httpResponse = await this.mapErrorToZenithHttpResponse(error);
             performance.mark('handle-request-end');
@@ -111,6 +117,10 @@ export class HttpRequestHandler {
             this.logger.error(`${chalk.red(httpResponse.status)} - [${routeMetadata.method} ${chalk.bold.italic(routeMetadata.path)}]: ${httpResponse.body.message} (${durationMeasure.duration.toFixed(2)}ms)`);
             return new Response(JSON.stringify(httpResponse.body), { status: httpResponse.status });
         }
+    }
+
+    private getDefaultStatusForMethod(method: RouteMethod): number {
+        return method === 'POST' ? 201 : 200;
     }
 
     private getMimeTypeForResponse(response: any) {
@@ -141,16 +151,19 @@ export class HttpRequestHandler {
         routeArgsMetadata: RouteParamMetadata[]
     ): Promise<any[]> {
         const numberOfArgs = routing.handler.length;
-        const paramTypes = Reflect.getMetadata('design:paramtypes', routing.controller, routing.handler.name) as any[];
+        const paramTypes = (Reflect.getMetadata('design:paramtypes', routing.controller, routing.handler.name) ?? []) as any[];
 
         const injectedArgs: any[] = [];
         for (let i = 0; i < numberOfArgs; i++) {
+            // routeArgsMetadata is keyed by parameter index, so this stays aligned with
+            // the handler signature no matter what order the decorators were applied in.
             const arg = routeArgsMetadata[i];
             const paramType = paramTypes[i];
 
-            if (!arg || !paramType) {
-                this.logger.warn(`Cannot process arg [${i}] of route handler ${routing.controller.constructor.name}.${routing.handler.name}`);
-                throw new InternalServerErrorException('UnprocessableRouteHandlerArgument');
+            if (!arg) {
+                // Undecorated parameter. Warned about at boot; pass undefined through.
+                injectedArgs.push(undefined);
+                continue;
             }
 
             if (arg.type === 'route') {
@@ -163,11 +176,9 @@ export class HttpRequestHandler {
                 await this.validateRequestParam(arg, paramType, controllerMetadata, routeMetadata, queryParam);
                 injectedArgs.push(queryParam);
             } else if (arg.type === 'body') {
+                await this.validateRequestParam(arg, paramType, controllerMetadata, routeMetadata, requestContext.body);
                 injectedArgs.push(requestContext.body);
             }
-        }
-        if (injectedArgs.length !== routeArgsMetadata.length) {
-            this.logger.warn(`Route ${routeMetadata.method} ${routeMetadata.path} expects ${routeArgsMetadata.length} arguments but only ${injectedArgs.length} could be provided`);
         }
 
         return injectedArgs;
@@ -175,12 +186,21 @@ export class HttpRequestHandler {
     }
 
     private async validateRequestParam(arg: RouteParamMetadata, paramType: any, controllerMetadata: ControllerMetadata, routeMetadata: Route, value: any): Promise<void> {
-        if (arg.validated || routeMetadata.validated || controllerMetadata.validated) {
-            const schema = arg.validationSchema || routeMetadata.validationSchema || paramType;
-            const result = await this.validator.validate(value, schema);
-            if (!result) {
-                throw new BadRequestException();
-            }
+        if (!(arg.validated || routeMetadata.validated || controllerMetadata.validated)) {
+            return;
+        }
+
+        const schema = arg.validationSchema ?? routeMetadata.validationSchema ?? paramType;
+        if (!isUsableSchema(schema)) {
+            // A parameter typed as a plain object/array erases to Object/Array, which is
+            // not something a validator can check. Fail loudly instead of cryptically.
+            this.logger.error(`No validation schema available for ${arg.type} parameter '${arg.name}' of ${routeMetadata.method} ${routeMetadata.path}. Pass one to @Validated() or type the parameter with a DTO.`);
+            throw new InternalServerErrorException('MissingValidationSchema');
+        }
+
+        const result = await this.validator.validate(value, schema);
+        if (!result) {
+            throw new BadRequestException();
         }
     }
 
@@ -199,6 +219,22 @@ export class HttpRequestHandler {
         return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(routeMetadata.method);
     }
 
+    /**
+     * Resolves the closest registered handler for an error, walking up the prototype
+     * chain so a handler for a base error also catches its subclasses.
+     */
+    private findExceptionHandler(error: Error): ExceptionHandlerEntry | undefined {
+        let ctor: any = error.constructor;
+        while (ctor && ctor !== Object && ctor.name) {
+            const handler = this.exceptionHandlers.get(ctor.name);
+            if (handler) {
+                return handler;
+            }
+            ctor = Object.getPrototypeOf(ctor);
+        }
+        return undefined;
+    }
+
     private async mapErrorToZenithHttpResponse(error: unknown): Promise<ZenithHttpResponse> {
         if (error instanceof HttpException) {
             return {
@@ -206,7 +242,7 @@ export class HttpRequestHandler {
                 body: error,
             };
         } else if (error instanceof Error) {
-            const exceptionHandler = this.exceptionHandlers.get(error.constructor.name);
+            const exceptionHandler = this.findExceptionHandler(error);
             if (exceptionHandler) {
                 const httpException = await exceptionHandler.handler(error) as HttpException;
                 return {
@@ -228,4 +264,10 @@ export class HttpRequestHandler {
         }
     }
 
+}
+
+const NON_SCHEMA_TYPES: unknown[] = [Object, Array, Function, String, Number, Boolean, Symbol];
+
+function isUsableSchema(schema: unknown): boolean {
+    return schema !== undefined && schema !== null && !NON_SCHEMA_TYPES.includes(schema);
 }

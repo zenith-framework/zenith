@@ -1,4 +1,5 @@
 export * from './http-method.decorator';
+export * from './http-code.decorator';
 export * from './route-param';
 export * from './controller.decorator';
 export * from './exception-handler.decorator';

@@ -31,12 +31,14 @@ export const Validated = (schema?: any) => (target: any, propertyKey?: string, d
         routeMetadata.validationSchema = schema;
         Reflect.defineMetadata(ZENITH_CONTROLLER_ROUTE, routeMetadata, target, propertyKey);
     } else {
-        const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, target, propertyKey) || [] as RouteParamMetadata[];
+        const routeMetadata = (Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, target, propertyKey) ?? []) as RouteParamMetadata[];
         const paramMetadata = routeMetadata[descriptorOrIndex as number];
         if (paramMetadata) {
             paramMetadata.validated = true;
             paramMetadata.validationSchema = schema;
             Reflect.defineMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, routeMetadata, target, propertyKey);
+        } else {
+            webSystemLogger.warn(`@Validated() on parameter ${descriptorOrIndex} of ${target.constructor.name}.${propertyKey} has no route parameter decorator to attach to. Place @Validated() above @Body()/@Query()/@RouteParam().`);
         }
     }
 };
