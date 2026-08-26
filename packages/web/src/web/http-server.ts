@@ -8,12 +8,20 @@ import { webSystemLogger } from "../logger";
 import { sanitizePath } from "../utils/path.utils";
 import { HttpRequestHandler } from "./http-request-handler";
 import type { Route, RouteMethod } from "./route";
-import type { ZenithRequestRouting } from "./zenith-request-routing";
+import type { ControllerInstance, RouteHandler, ZenithRequestRouting } from "./zenith-request-routing";
+
+/** What Bun's `serve({ routes })` expects for each method on a path. */
+type BunRouteHandler = (req: BunRequest) => Response | Promise<Response>;
+
+/** Reaches a controller method by name. Returns undefined when there is no such method. */
+function methodOf(controllerInstance: ControllerInstance, name: string): RouteHandler | undefined {
+    return (controllerInstance as Record<string, RouteHandler | undefined>)[name];
+}
 
 @Orb()
 export class HttpServer {
     private readonly logger = webSystemLogger;
-    private readonly routeHandlers: Record<string, Record<RouteMethod, (...args: any[]) => any>> = {};
+    private readonly routeHandlers: Record<string, Record<RouteMethod, BunRouteHandler>> = {};
     private readonly routingMap: Record<string, Record<RouteMethod, ZenithRequestRouting>> = {};
     private server?: Server;
 
@@ -26,18 +34,22 @@ export class HttpServer {
 
     async scanAndRegisterRoutes() {
         this.logger.info("Registering routes");
-        const controllers = this.container.getOrbsByType<any>(ZENITH_ORB_TYPE_CONTROLLER);
+        const controllers = this.container.getOrbsByType<ControllerInstance>(ZENITH_ORB_TYPE_CONTROLLER);
         for (const controller of controllers) {
             await this.registerController(controller);
         }
     }
 
-    async registerController(controller: OrbWrapper<any>) {
+    async registerController(controller: OrbWrapper<ControllerInstance>) {
         const globalRoutesPrefix = this.config.globalRoutesPrefix() ?? '';
         const controllerInstance = controller.getInstance();
-        const controllerMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_METADATA, controller.value) || {} as ControllerMetadata;
+        if (!controllerInstance) {
+            this.logger.error(`Controller ${controller.name} has no instance and cannot be registered.`);
+            return;
+        }
+        const controllerMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_METADATA, controller.value as object) || {} as ControllerMetadata;
         const controllerDefaultPath = sanitizePath(controllerMetadata.path);
-        const routes = Object.getOwnPropertyNames(Object.getPrototypeOf(controller.getInstance())).filter((key) => key !== 'constructor');
+        const routes = Object.getOwnPropertyNames(Object.getPrototypeOf(controllerInstance)).filter((key) => key !== 'constructor');
 
         for (const route of routes) {
             const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controllerInstance, route) as Route | undefined;
@@ -46,7 +58,7 @@ export class HttpServer {
                 continue;
             }
             if (controllerMetadata.validated && !routeMetadata.validated) {
-                this.logger.error(`Route ${routeMetadata.method} ${routeMetadata.path} is not validated but the controller requires it (${controller.value.name}.${route}).`);
+                this.logger.error(`Route ${routeMetadata.method} ${routeMetadata.path} is not validated but the controller requires it (${controllerInstance.constructor.name}.${route}).`);
                 continue;
             }
 
@@ -55,9 +67,14 @@ export class HttpServer {
                 fullPath += '/' + routeMetadata.path;
             }
 
-            const routing = {
+            const handler = methodOf(controllerInstance, route);
+            if (!handler) {
+                continue;
+            }
+
+            const routing: ZenithRequestRouting = {
                 controller: controllerInstance,
-                handler: controllerInstance[route],
+                handler,
             }
 
             this.warnOnUndecoratedParams(controllerInstance, route);
@@ -67,7 +84,7 @@ export class HttpServer {
 
     async registerRoute(fullPath: string, method: RouteMethod, routing: ZenithRequestRouting) {
         const sanitizedFullPath = '/' + sanitizePath(fullPath);
-        const existingHandlers = this.routeHandlers[sanitizedFullPath] || {} as Record<RouteMethod, (...args: any[]) => any>;
+        const existingHandlers = this.routeHandlers[sanitizedFullPath] || {} as Record<RouteMethod, BunRouteHandler>;
         existingHandlers[method] = (req: BunRequest) => this.httpRequestHandler.handleRequest({
             bunRequest: req,
             fullPath: sanitizedFullPath,
@@ -86,8 +103,11 @@ export class HttpServer {
      * Handler parameters without a @Body()/@Query()/@RouteParam() decorator receive
      * `undefined` at request time. Surface that at boot rather than at the first call.
      */
-    private warnOnUndecoratedParams(controllerInstance: any, handlerName: string) {
-        const handler = controllerInstance[handlerName] as Function;
+    private warnOnUndecoratedParams(controllerInstance: ControllerInstance, handlerName: string) {
+        const handler = methodOf(controllerInstance, handlerName);
+        if (!handler) {
+            return;
+        }
         const routeArgs = (Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, controllerInstance, handlerName) ?? []) as RouteParamMetadata[];
         const undecorated: number[] = [];
         for (let i = 0; i < handler.length; i++) {

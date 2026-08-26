@@ -7,7 +7,7 @@ export class WebConfig extends ZenithWebConfig {
         super();
     }
 
-    httpServerPort() {
+    override httpServerPort() {
         return 3005;
     }
 }

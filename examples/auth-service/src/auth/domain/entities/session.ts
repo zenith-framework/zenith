@@ -1,4 +1,4 @@
-import { Entity, EntityConstructArgs } from '../../../utils/entity';
+import { Entity, type EntityConstructArgs } from '../../../utils/entity';
 import { User } from './user';
 
 export interface SessionProps {

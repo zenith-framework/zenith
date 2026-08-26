@@ -9,8 +9,8 @@ export interface ZodDto<
     isEnumWrapper: boolean
 }
 
-export function isZodDto(schema: any): schema is ZodDto<any> {
-    return schema.isZodDto === true;
+export function isZodDto(schema: unknown): schema is ZodDto<z.ZodTypeAny> {
+    return (schema as ZodDto<z.ZodTypeAny> | null)?.isZodDto === true;
 }
 
 
@@ -38,7 +38,7 @@ export const createZodDto = <
 // The wrapping is needed because enums are not objects
 // The parameter wrapping will be done by the validator or pre-processor
 export const createZodEnumDto = <
-    T extends z.ZodEnum<any>
+    T extends z.ZodEnum
 >(schema: T, options: { name: string }) => {
     class ZodDtoWrapper {
         static isZodDto = true;

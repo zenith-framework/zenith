@@ -8,8 +8,8 @@ export interface Route {
     method: RouteMethod;
     guards?: RequestGuardOrbProvider[];
     validated?: boolean;
-    validationSchema?: any;
+    validationSchema?: unknown;
     mimeType?: string;
     statusCode?: number;
-    openApiResponses?: { status?: number, description?: string, type: any }[];
+    openApiResponses?: { status?: number, description?: string, type: unknown }[];
 }

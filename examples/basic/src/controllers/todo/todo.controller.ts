@@ -16,12 +16,13 @@ export default class TodoController {
 
     @Get('/')
     getTodos(@Query('content') content: string) {
-        return { todo: this.todoService.getTodos() };
+        const todos = this.todoService.getTodos();
+        return { todos: content ? todos.filter(todo => todo.includes(content)) : todos };
     }
 
     @Get('/:id')
-    getTodo(@RouteParam('id') id: string, otherId: string) {
-        return { todo: this.todoService.getTodos() };
+    getTodo(@RouteParam('id') id: string) {
+        return { id, todo: this.todoService.getTodos()[Number(id)] };
     }
 
     @Validated(CreateTodoDto)

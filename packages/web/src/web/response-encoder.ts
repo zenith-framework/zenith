@@ -1,3 +1,3 @@
 export interface ResponseEncoder {
-    encode(payload: any): Promise<string>;
+    encode(payload: unknown): Promise<string>;
 }

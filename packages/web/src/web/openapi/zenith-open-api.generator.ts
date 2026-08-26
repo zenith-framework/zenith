@@ -1,17 +1,17 @@
 import { Orb, OrbContainer } from "@zenith-framework/core";
 import { HttpServer } from "../http-server";
-import type { OpenApiDocument, OpenApiParameter, OpenApiPath, OpenApiRequestBody, OpenApiResponse } from "./types/openapi-document";
+import type { OpenApiDocument, OpenApiParameter, OpenApiPath, OpenApiRequestBody, OpenApiResponse, OpenApiSchema } from "./types/openapi-document";
 import type { Route, RouteMethod } from "../route";
 import type { ZenithRequestRouting } from "../zenith-request-routing";
-import { Controller, Get, type RouteParamMetadata } from "../..";
+import { Get, type ControllerMetadata, type RouteParamMetadata } from "../..";
 import { webSystemLogger } from "../../logger";
-import { ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS } from "../../decorators/metadata-keys";
+import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS } from "../../decorators/metadata-keys";
 import { createSchema } from "zod-openapi";
 
 @Orb()
 export class ZenithOpenApiGenerator {
 
-    private readonly openApiSchemas: Record<string, any> = {};
+    private readonly openApiSchemas: Record<string, OpenApiSchema> = {};
 
     constructor(
         private readonly container: OrbContainer,
@@ -107,24 +107,26 @@ export class ZenithOpenApiGenerator {
         };
 
         const openApiController = new OpenApiController(document);
-        Controller('/openapi')(openApiController);
-        const openApiControllerOrb = this.container.registerOrb(openApiController);
+        const openApiControllerMetadata: ControllerMetadata = { path: '/openapi' };
+        Reflect.defineMetadata(ZENITH_CONTROLLER_METADATA, openApiControllerMetadata, openApiController);
+        const openApiControllerOrb = this.container.registerOrb<OpenApiController>(openApiController);
         await this.httpServer.registerController(openApiControllerOrb);
     }
 
-    private openApiSchemaForType(type: any) {
+    private openApiSchemaForType(type: unknown): OpenApiSchema {
         // TODO: also support validation / constraints like minimum / maximum / enum / etc.
-        if (type.name === 'String') {
+        const named = type as { name?: string, schema?: unknown };
+        if (named.name === 'String') {
             return { type: 'string' };
-        } else if (type.name === 'Number') {
+        } else if (named.name === 'Number') {
             return { type: 'number' };
         } else if (typeof type === 'boolean') {
             return { type: 'boolean' };
         }
 
-        const { schema } = createSchema(type.schema, { io: 'input' });
-        this.openApiSchemas[type.name] = schema;
-        return { $ref: `#/components/schemas/${type.name}` };
+        const { schema } = createSchema(named.schema as Parameters<typeof createSchema>[0], { io: 'input' });
+        this.openApiSchemas[String(named.name)] = schema as OpenApiSchema;
+        return { $ref: `#/components/schemas/${named.name}` };
     }
 
     private getDefaultStatusForRouteMethod(method: RouteMethod) {

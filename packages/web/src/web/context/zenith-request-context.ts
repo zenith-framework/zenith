@@ -7,14 +7,14 @@ export class ZenithRequestContext {
     private static storage = new AsyncLocalStorage<ZenithRequestContext>();
 
     readonly request: ZenithRequest;
-    private _body: any;
+    private _body: unknown;
 
     constructor(request: ZenithRequest) {
         this.request = request;
     }
 
     // Static methods
-    static createForRequest<T>(request: ZenithRequest, handler: (...args: any[]) => T): T {
+    static createForRequest<T>(request: ZenithRequest, handler: () => T): T {
         const context = new ZenithRequestContext(request);
         return ZenithRequestContext.storage.run(context, handler);
     }
@@ -23,7 +23,7 @@ export class ZenithRequestContext {
         return this.storage.getStore()!;
     }
 
-    set body(body: any) {
+    set body(body: unknown) {
         this._body = body;
     }
 

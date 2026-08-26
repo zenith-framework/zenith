@@ -40,7 +40,7 @@ describe('OrbContainer', () => {
             container.registerOrb(value, { name: 'Answer' });
             container.instanciateOrbs();
 
-            expect(container.get('Answer')).toBe(value);
+            expect(container.get<typeof value>('Answer')).toBe(value);
         });
 
         it('honours the name given to @Orb', () => {

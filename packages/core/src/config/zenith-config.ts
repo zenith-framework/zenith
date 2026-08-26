@@ -1,5 +1,5 @@
 export class ZenithConfig {
-    constructor(private readonly values: Record<string, any>) {
+    constructor(private readonly values: Record<string, unknown>) {
     }
 
     get<T>(key: string): T {

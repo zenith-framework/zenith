@@ -1,3 +1,5 @@
+import type { Constructor } from "./types";
+
 /**
  * A system is a unit of framework capability: a directory of orbs plus a lifecycle.
  *
@@ -18,8 +20,7 @@ export abstract class ZenithSystem {
     abstract onStop(): Promise<void>;
 }
 
-export interface ZenithSystemClass<T extends ZenithSystem = ZenithSystem> {
-    new(...args: any[]): T;
+export type ZenithSystemClass<T extends ZenithSystem = ZenithSystem> = Constructor<T> & {
     /** Directory scanned for the orbs this system provides. Usually `import.meta.dirname`. */
     readonly root: string;
-}
+};

@@ -1,13 +1,13 @@
 import { webSystemLogger } from "../logger";
-import type { RequestGuard, RequestGuardOrbProvider } from "../web/request-guard";
+import type { RequestGuardOrbProvider } from "../web/request-guard";
 import type { Route } from "../web/route";
 import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE } from "./metadata-keys";
 import type { ControllerMetadata } from "./controller.decorator";
 import chalk from "chalk";
-import { getInjectableOrbName } from "@zenith-framework/core";
+import { getInjectableOrbName, type DecoratorTarget } from "@zenith-framework/core";
     
 export const Guards = (guards: RequestGuardOrbProvider[]) => {
-    return (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) => {
+    return (target: DecoratorTarget, propertyKey?: string, descriptor?: PropertyDescriptor) => {
         if (!propertyKey || !descriptor) {
             const controllerMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_METADATA, target) || {} as ControllerMetadata;
             controllerMetadata.guards = guards;
