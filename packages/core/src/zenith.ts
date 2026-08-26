@@ -7,7 +7,7 @@ import { ConfigLoader } from './config/config-loader';
 import { ZENITH_ORB_TYPE_CONFIG } from './decorators/metadata-keys';
 import { OrbContainer } from "./ioc/container";
 import { ModuleLoader } from "./module-loader";
-import type { ZenithSystem } from './zenith-system';
+import type { ZenithSystem, ZenithSystemClass } from './zenith-system';
 import { ZENITH_CONTAINER_ORB, ZENITH_CONFIG_ORB } from './ioc/reserved-orb-names';
 
 export class Zenith {
@@ -17,17 +17,22 @@ export class Zenith {
   private readonly configLoader: ConfigLoader;
   private readonly container: OrbContainer;
 
-  private readonly systemsToLoad: (new (...args: any[]) => ZenithSystem)[] = [];
-  private readonly systems: ZenithSystem[] = [];
+  private readonly systemsToLoad: ZenithSystemClass[] = [];
+  private systems: ZenithSystem[] = [];
 
-  constructor(private readonly debug: boolean = false) {
+  constructor() {
     this.rootDir = path.dirname(Bun.main);
     this.moduleLoader = new ModuleLoader();
     this.configLoader = new ConfigLoader(this.rootDir);
     this.container = new OrbContainer();
   }
 
-  with(system: new (container: OrbContainer) => ZenithSystem): this {
+  /** The container backing this application, once {@link start} has run. */
+  getContainer(): OrbContainer {
+    return this.container;
+  }
+
+  with(system: ZenithSystemClass): this {
     this.systemsToLoad.push(system);
     return this;
   }
@@ -50,6 +55,7 @@ export class Zenith {
       const modules = await this.moduleLoader.scan(this.rootDir);
       this.container.registerModules(modules);
       this.container.instanciateOrbs();
+      this.resolveSystems();
 
       this.container.getOrbsByType(ZENITH_ORB_TYPE_CONFIG).forEach(orb => {
         this.logger.info(`Registered config ${chalk.blue(orb.name)} using ${chalk.blue((orb.value as any).name)}`);
@@ -84,7 +90,8 @@ export class Zenith {
       }
       shuttingDown = true;
       this.logger.info(`Received ${chalk.yellow(signal)}, shutting down`);
-      for (const system of this.systems) {
+      // Stop systems in reverse start order, then release the orbs underneath them.
+      for (const system of [...this.systems].reverse()) {
         this.logger.info(`Stopping ${chalk.yellow(system.constructor.name)} `);
         try {
           await system.onStop();
@@ -92,6 +99,7 @@ export class Zenith {
           this.logger.error(`Error stopping ${system.constructor.name}: ${error instanceof Error ? error.stack : String(error)}`);
         }
       }
+
       await this.container.destroyOrbs();
 
       this.logger.info(`Shutting down`);
@@ -107,11 +115,28 @@ export class Zenith {
   private async prepareSystems() {
     for (const system of this.systemsToLoad) {
       this.logger.info(`Initializing system ${chalk.yellow(system.name)} `);
-      const systemInstance = new system(this.container);
-      const modules = await this.moduleLoader.scan(systemInstance.getRoot());
-      this.container.registerModules(modules);
+      if (typeof system.root !== 'string') {
+        throw new Error(`System ${system.name} must declare a static 'root' (usually 'static readonly root = import.meta.dirname').`);
+      }
 
-      this.systems.push(systemInstance);
+      const modules = await this.moduleLoader.scan(system.root);
+      this.container.registerModules(modules);
+      // Idempotent when the scan already picked the system up from its own directory.
+      this.container.registerOrb(system, { source: system.root });
     }
+  }
+
+  /**
+   * Systems are built by the container like any other orb, so they are only available
+   * once the graph has been instantiated.
+   */
+  private resolveSystems() {
+    this.systems = this.systemsToLoad.map(system => {
+      const instance = this.container.get(system);
+      if (!instance) {
+        throw new Error(`System ${system.name} could not be built. Make sure it is decorated with @Orb().`);
+      }
+      return instance;
+    });
   }
 }

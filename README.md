@@ -13,10 +13,15 @@ An orb is something that you provide to the IoC container to inject (could be a 
 To start, init a new repo and add in `src/index.ts`:
 ```ts
 import { startBlaze } from "@zenith-framework/blaze";
-startBlaze(); 
+await startBlaze();
 ```
 
-This will automatically scan your modules and use a web server.
+This will automatically scan your modules and use a web server. `startBlaze` returns the
+running `Zenith` instance, and takes extra systems to load alongside the web one:
+
+```ts
+const zenith = await startBlaze({ with: [MySystem] });
+```
 
 ### Without blaze
 
@@ -57,6 +62,49 @@ systems have stopped, so an orb is released before the orbs it depends on. A fai
 `onDestroy` is logged and the remaining orbs are still destroyed.
 
 See `examples/lifecycle` for a runnable version.
+
+## Systems
+
+A system is a unit of framework capability: a directory of orbs plus a lifecycle.
+`ZenithWebSystem` is one. Systems are ordinary orbs, so they declare what they need
+through their constructor.
+
+```ts
+import { Orb, ZenithSystem } from '@zenith-framework/core';
+
+@Orb()
+export class MySystem extends ZenithSystem {
+    static readonly root = import.meta.dirname;   // scanned for the orbs this system provides
+
+    constructor(private readonly somethingFromMyDirectory: Thing) {
+        super();
+    }
+
+    async onStart() { }
+    async onStop() { }
+}
+```
+
+Load it with `zenith.with(MySystem)`, or `startBlaze({ with: [MySystem] })`.
+
+To make a system configurable, have it inject a named config and let projects override
+it by declaring their own class under the same name:
+
+```ts
+@Config('MySystemConfig')
+export class MyConfig extends MySystemConfig {
+    endpoint() { return 'https://example.com'; }
+}
+```
+
+## Name collisions
+
+Because orbs are discovered by scanning rather than declared in an imports list, two
+classes sharing a name would silently overwrite each other. Zenith refuses this at
+startup and names both files. Rename one with `@Orb('AnotherName')`.
+
+Configs are the exception: declaring a `@Config` under an existing name replaces it,
+which is how a project overrides a system's defaults.
 
 ## Install & running examples
 

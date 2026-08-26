@@ -1,4 +1,4 @@
-import { ZENITH_ORB_INJECT_NAME, ZENITH_ORB_INJECT_OPTIONS, ZENITH_ORB_PROVIDE, ZENITH_ORB_TYPE } from "../decorators/metadata-keys";
+import { ZENITH_ORB_INJECT_NAME, ZENITH_ORB_INJECT_OPTIONS, ZENITH_ORB_PROVIDE, ZENITH_ORB_TYPE, ZENITH_ORB_TYPE_CONFIG } from "../decorators/metadata-keys";
 import { OrbWrapper } from "./orb-wrapper";
 import type { ZenithModule } from "../zenith-module";
 import { zenithLogger } from "../logger";
@@ -7,6 +7,7 @@ import { CyclicDependencyError } from "./cyclic-dependencies.error";
 import chalk from "chalk";
 import { getInjectableOrbName } from "./utils";
 import { hasOnDestroy, hasOnInit } from "./orb-lifecycle";
+import { isReservedOrbName } from "./reserved-orb-names";
 
 export class OrbContainer {
   private readonly logger = zenithLogger('OrbContainer');
@@ -18,7 +19,7 @@ export class OrbContainer {
     this.orbs = new Map();
   }
 
-  registerOrb<T>(orbRaw: (new (...args: any[]) => T) | T, options: { name?: string } = {}) {
+  registerOrb<T>(orbRaw: (new (...args: any[]) => T) | T, options: { name?: string, source?: string } = {}) {
     const orbName = options.name ?? getInjectableOrbName(orbRaw);
     if (!orbName) {
       throw new Error('Cannot register orb without a name')
@@ -26,18 +27,45 @@ export class OrbContainer {
     let orb: OrbWrapper<any> | undefined;
     const type = Reflect.getMetadata(ZENITH_ORB_TYPE, typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor);
 
+    this.assertNameIsAvailable(orbName, orbRaw, type, options.source);
+
     if (orbRaw instanceof Function) {
       assertDecoratorMetadataIsEmitted(orbRaw);
       const dependencies = Reflect.getMetadata('design:paramtypes', orbRaw) as (any[] | undefined) ?? [];
       const dependenciesNames = dependencies.map((dependency, index) => this.getInjectableOrbNameFromParameter(orbRaw, index, dependency.name));
-      orb = new OrbWrapper<typeof orbRaw>(orbName, type, orbRaw, dependenciesNames, null);
+      orb = new OrbWrapper<typeof orbRaw>(orbName, type, orbRaw, dependenciesNames, null, options.source);
     } else {
-      orb = new OrbWrapper<T>(orbName, type, orbRaw, [], orbRaw);
+      orb = new OrbWrapper<T>(orbName, type, orbRaw, [], orbRaw, options.source);
     }
 
     this.orbs.set(orb.name, orb);
     this.logger.debug(`Registered orb ${chalk.blue(orb.name)}`);
     return orb;
+  }
+
+  /**
+   * With filesystem scanning there is no import list to catch a name clash, so two
+   * classes sharing a name would otherwise overwrite each other in silence.
+   *
+   * Configs are exempt: replacing a config by declaring one under the same name is
+   * how a project overrides a system's defaults.
+   */
+  private assertNameIsAvailable(orbName: string, orbRaw: unknown, type: string | undefined, source?: string) {
+    const existing = this.orbs.get(orbName);
+    if (!existing || existing.value === orbRaw) {
+      // Re-registering the same class (a re-export, a file scanned twice) is a no-op.
+      return;
+    }
+    if (type === ZENITH_ORB_TYPE_CONFIG) {
+      return;
+    }
+
+    const where = [existing.source, source].filter(Boolean);
+    const locations = where.length === 2 ? ` (${where[0]} and ${where[1]})` : '';
+    throw new Error(
+      `Two different orbs are registered as '${orbName}'${locations}. ` +
+      `Give one of them another name with @Orb('AnotherName').`
+    );
   }
 
   instanciateOrbs() {
@@ -203,7 +231,6 @@ export class OrbContainer {
     }
   }
 
-
   getOrbsByType<T>(type: string): OrbWrapper<T>[] {
     return Array.from(this.orbs.values()).filter(orb => orb.type === type) as OrbWrapper<T>[];
   }
@@ -257,7 +284,14 @@ export class OrbContainer {
       if (typeof value === 'function') {
         const shouldProvide = Reflect.getMetadata(ZENITH_ORB_PROVIDE, value);
         if (shouldProvide) {
-          this.registerOrb(value);
+          const orbName = getInjectableOrbName(value);
+          if (isReservedOrbName(orbName)) {
+            throw new Error(
+              `'${orbName}' is reserved by Zenith but is declared as an orb in ${module.path}. ` +
+              `Give it another name with @Orb('AnotherName').`
+            );
+          }
+          this.registerOrb(value, { source: module.path });
         }
       }
     }
