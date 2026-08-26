@@ -2,14 +2,12 @@ import { InjectOrb, Orb, OrbContainer, type OrbWrapper } from "@zenith-framework
 import { serve, type BunRequest, type Server } from "bun";
 import { ZenithWebConfig } from "../config/zenith-web.config";
 import type { ControllerMetadata } from "../decorators/controller.decorator";
-import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE, ZENITH_ORB_TYPE_CONTROLLER } from "../decorators/metadata-keys";
+import type { RouteParamMetadata } from "../decorators/route-param";
+import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS, ZENITH_ORB_TYPE_CONTROLLER } from "../decorators/metadata-keys";
 import { webSystemLogger } from "../logger";
 import { sanitizePath } from "../utils/path.utils";
 import { HttpRequestHandler } from "./http-request-handler";
-import type { RequestDecoder } from "./request-decoder";
-import type { ResponseEncoder } from "./response-encoder";
 import type { Route, RouteMethod } from "./route";
-import type { Validator } from "./validator";
 import type { ZenithRequestRouting } from "./zenith-request-routing";
 
 @Orb()
@@ -17,16 +15,12 @@ export class HttpServer {
     private readonly logger = webSystemLogger;
     private readonly routeHandlers: Record<string, Record<RouteMethod, (...args: any[]) => any>> = {};
     private readonly routingMap: Record<string, Record<RouteMethod, ZenithRequestRouting>> = {};
-    private readonly httpRequestDecoders: Map<string, OrbWrapper<RequestDecoder>> = new Map();
-    private readonly httpResponseEncoders: Map<string, OrbWrapper<ResponseEncoder>> = new Map();
-    private readonly exceptionHandlers: Map<string, { orb: OrbWrapper<any>, handler: Function }> = new Map();
     private server?: Server;
 
     constructor(
         private readonly container: OrbContainer,
         private readonly httpRequestHandler: HttpRequestHandler,
         @InjectOrb('ZenithWebConfig') private readonly config: ZenithWebConfig,
-        @InjectOrb('Validator') private readonly validator: Validator<any>,
     ) {
     }
 
@@ -46,7 +40,11 @@ export class HttpServer {
         const routes = Object.getOwnPropertyNames(Object.getPrototypeOf(controller.getInstance())).filter((key) => key !== 'constructor');
 
         for (const route of routes) {
-            const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controller.getInstance(), route) as Route;
+            const routeMetadata = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, controllerInstance, route) as Route | undefined;
+            if (!routeMetadata) {
+                // Not every public method on a controller is a route (helpers, etc.).
+                continue;
+            }
             if (controllerMetadata.validated && !routeMetadata.validated) {
                 this.logger.error(`Route ${routeMetadata.method} ${routeMetadata.path} is not validated but the controller requires it (${controller.value.name}.${route}).`);
                 continue;
@@ -62,8 +60,8 @@ export class HttpServer {
                 handler: controllerInstance[route],
             }
 
+            this.warnOnUndecoratedParams(controllerInstance, route);
             this.registerRoute(fullPath, routeMetadata.method, routing);
-
         }
     }
 
@@ -82,6 +80,24 @@ export class HttpServer {
         this.routeHandlers[sanitizedFullPath] = existingHandlers;
         this.logger.info(`Registered route: ${method} ${sanitizedFullPath} (${routing.controller.constructor.name}.${routing.handler.name})`);
 
+    }
+
+    /**
+     * Handler parameters without a @Body()/@Query()/@RouteParam() decorator receive
+     * `undefined` at request time. Surface that at boot rather than at the first call.
+     */
+    private warnOnUndecoratedParams(controllerInstance: any, handlerName: string) {
+        const handler = controllerInstance[handlerName] as Function;
+        const routeArgs = (Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE_ARGS, controllerInstance, handlerName) ?? []) as RouteParamMetadata[];
+        const undecorated: number[] = [];
+        for (let i = 0; i < handler.length; i++) {
+            if (!routeArgs[i]) {
+                undecorated.push(i);
+            }
+        }
+        if (undecorated.length > 0) {
+            this.logger.warn(`${controllerInstance.constructor.name}.${handlerName} has undecorated parameter(s) [${undecorated.join(', ')}] which will receive undefined.`);
+        }
     }
 
     async start() {

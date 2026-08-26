@@ -13,7 +13,8 @@ export const Guards = (guards: RequestGuardOrbProvider[]) => {
             controllerMetadata.guards = guards;
             Reflect.defineMetadata(ZENITH_CONTROLLER_METADATA, controllerMetadata, target);
         } else {
-            const route = Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, target, propertyKey) as Route;
+            // May run before the @Get/@Post decorator when @Guards is listed below it.
+            const route = (Reflect.getMetadata(ZENITH_CONTROLLER_ROUTE, target, propertyKey) ?? {}) as Route;
             route.guards = guards;
             Reflect.defineMetadata(ZENITH_CONTROLLER_ROUTE, route, target, propertyKey);
             webSystemLogger.info(`Registering guards [${chalk.blue(guards.map((guard) => getInjectableOrbName(guard)).join(', '))}] for route ${target.constructor.name}.${propertyKey}`);
