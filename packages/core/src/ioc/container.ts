@@ -24,6 +24,7 @@ export class OrbContainer {
     const type = Reflect.getMetadata(ZENITH_ORB_TYPE, typeof orbRaw === 'function' ? orbRaw : (orbRaw as any).constructor);
 
     if (orbRaw instanceof Function) {
+      assertDecoratorMetadataIsEmitted(orbRaw);
       const dependencies = Reflect.getMetadata('design:paramtypes', orbRaw) as (any[] | undefined) ?? [];
       const dependenciesNames = dependencies.map((dependency, index) => this.getInjectableOrbNameFromParameter(orbRaw, index, dependency.name));
       orb = new OrbWrapper<typeof orbRaw>(orbName, type, orbRaw, dependenciesNames, null);
@@ -45,6 +46,11 @@ export class OrbContainer {
 
     for (const orb of this.orbs.values()) {
       for (const dependency of orb.dependencies) {
+        // Unregistered dependencies are not graph nodes. They are reported with full
+        // context by provideInstance (or ignored when declared allowAbsent).
+        if (!indegrees.has(dependency)) {
+          continue;
+        }
         indegrees.set(dependency, indegrees.get(dependency)! + 1);
       }
     }
@@ -63,6 +69,9 @@ export class OrbContainer {
       topologicalSortedOrbs.push(orb.name);
 
       for (const dependency of orb.dependencies) {
+        if (!indegrees.has(dependency)) {
+          continue;
+        }
         indegrees.set(dependency, indegrees.get(dependency)! - 1);
         if (indegrees.get(dependency) === 0) {
           zeroIndegreeOrbs.push(dependency);
@@ -95,7 +104,7 @@ export class OrbContainer {
             visited.add(node);
           } else {
             if (!visited.has(neighbor)) {
-              stack.push({ orb: neighbor, dependencies: [...this.orbs.get(neighbor)!.dependencies] });
+              stack.push({ orb: neighbor, dependencies: [...(this.orbs.get(neighbor)?.dependencies ?? [])] });
               path.push(neighbor);
               onStack.add(neighbor);
               visited.add(neighbor);
@@ -199,4 +208,23 @@ export class OrbContainer {
       }
     }
   }
-} 
+}
+
+/**
+ * Constructor parameter types come from the `design:paramtypes` metadata emitted by
+ * `emitDecoratorMetadata`. Without that flag the container silently builds every orb
+ * with zero arguments, and the failure only surfaces much later as an undefined
+ * property access. Detect it at registration and say what is actually wrong.
+ */
+function assertDecoratorMetadataIsEmitted(orbRaw: new (...args: any[]) => unknown) {
+  if (orbRaw.length === 0) {
+    return;
+  }
+  if (Reflect.getMetadata('design:paramtypes', orbRaw) !== undefined) {
+    return;
+  }
+  throw new Error(
+    `Cannot read the constructor dependencies of '${orbRaw.name}'. ` +
+    `Set "experimentalDecorators": true and "emitDecoratorMetadata": true in the tsconfig.json that applies to this file.`
+  );
+}

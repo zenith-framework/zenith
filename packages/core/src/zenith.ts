@@ -75,14 +75,29 @@ export class Zenith {
   }
 
   private registerShutdownHooks() {
-    process.on('SIGINT', async () => {
+    let shuttingDown = false;
+    const shutdown = async (signal: string) => {
+      if (shuttingDown) {
+        return;
+      }
+      shuttingDown = true;
+      this.logger.info(`Received ${chalk.yellow(signal)}, shutting down`);
       for (const system of this.systems) {
         this.logger.info(`Stopping ${chalk.yellow(system.constructor.name)} `);
-        await system.onStop();
+        try {
+          await system.onStop();
+        } catch (error) {
+          this.logger.error(`Error stopping ${system.constructor.name}: ${error instanceof Error ? error.stack : String(error)}`);
+        }
       }
       this.logger.info(`Shutting down`);
       process.exit(0);
-    });
+    };
+
+    // SIGTERM is what container runtimes (Docker, Kubernetes) send.
+    for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+      process.on(signal, () => { void shutdown(signal); });
+    }
   }
 
   private async prepareSystems() {

@@ -1,6 +1,6 @@
 import { ZenithConfig, Config } from "@zenith-framework/core";
 import type { ZenithWebConfig } from "./zenith-web.config";
-import { ZENITH_WEB_GENERATE_OPEN_API_DOCS, ZENITH_WEB_GLOBAL_ROUTES_PREFIX, ZENITH_WEB_HTTP_SERVER_PORT } from "./config-keys";
+import { ZENITH_WEB_DEFAULT_GENERATE_OPEN_API_DOCS, ZENITH_WEB_DEFAULT_GLOBAL_ROUTES_PREFIX, ZENITH_WEB_DEFAULT_HTTP_SERVER_PORT, ZENITH_WEB_GENERATE_OPEN_API_DOCS, ZENITH_WEB_GLOBAL_ROUTES_PREFIX, ZENITH_WEB_HTTP_SERVER_PORT } from "./config-keys";
 
 @Config('ZenithWebConfig')
 export class DefaultZenithWebConfig implements ZenithWebConfig {
@@ -9,14 +9,14 @@ export class DefaultZenithWebConfig implements ZenithWebConfig {
     }
 
     globalRoutesPrefix(): string {
-        return this.config.getOrDefault(ZENITH_WEB_GLOBAL_ROUTES_PREFIX, '/');
+        return this.config.getOrDefault(ZENITH_WEB_GLOBAL_ROUTES_PREFIX, ZENITH_WEB_DEFAULT_GLOBAL_ROUTES_PREFIX);
     }
 
     httpServerPort(): number {
-        return this.config.getOrDefault(ZENITH_WEB_HTTP_SERVER_PORT, 3000);
+        return this.config.getOrDefault(ZENITH_WEB_HTTP_SERVER_PORT, ZENITH_WEB_DEFAULT_HTTP_SERVER_PORT);
     }
 
     generateOpenApiDocs(): boolean {
-        return this.config.getOrDefault(ZENITH_WEB_GENERATE_OPEN_API_DOCS, false);
+        return this.config.getOrDefault(ZENITH_WEB_GENERATE_OPEN_API_DOCS, ZENITH_WEB_DEFAULT_GENERATE_OPEN_API_DOCS);
     }
 } 
