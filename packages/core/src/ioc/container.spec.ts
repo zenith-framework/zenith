@@ -544,6 +544,64 @@ describe('OrbContainer', () => {
         });
     });
 
+    describe('name collisions', () => {
+        function orbNamed(name: string) {
+            @Orb(name)
+            class Collides { }
+            return Collides;
+        }
+
+        it('refuses two different orbs sharing a name', () => {
+            container.registerOrb(orbNamed('Duplicated'), { source: '/app/first.ts' });
+
+            expect(() => container.registerOrb(orbNamed('Duplicated'), { source: '/app/second.ts' }))
+                .toThrow(/Two different orbs are registered as 'Duplicated'/);
+        });
+
+        it('names both files in the collision message', () => {
+            container.registerOrb(orbNamed('Duplicated'), { source: '/app/first.ts' });
+
+            expect(() => container.registerOrb(orbNamed('Duplicated'), { source: '/app/second.ts' }))
+                .toThrow(/first\.ts and \/app\/second\.ts/);
+        });
+
+        it('accepts the same class registered twice', () => {
+            const Reexported = orbNamed('Reexported');
+
+            container.registerOrb(Reexported);
+            expect(() => container.registerOrb(Reexported)).not.toThrow();
+        });
+
+        it('lets a config replace another config of the same name', () => {
+            @Config('SharedConfig')
+            class DefaultConfig {
+                readonly origin = 'default';
+            }
+
+            @Config('SharedConfig')
+            class ProjectConfig {
+                readonly origin = 'project';
+            }
+
+            container.registerOrb(DefaultConfig);
+            container.registerOrb(ProjectConfig);
+            container.instanciateOrbs();
+
+            expect(container.get<ProjectConfig>('SharedConfig')!.origin).toBe('project');
+        });
+
+        it('refuses a scanned orb that claims a reserved name', () => {
+            @Orb('ZenithConfig')
+            class RogueConfig { }
+
+            expect(() => container.registerModules([{
+                name: 'rogue',
+                path: '/app/rogue.ts',
+                module: { default: undefined, RogueConfig },
+            }])).toThrow(/reserved/);
+        });
+    });
+
     describe('registerModules', () => {
         it('registers only the exports marked as orbs', () => {
             @Orb()

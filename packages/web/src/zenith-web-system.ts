@@ -1,21 +1,23 @@
-import { ZenithSystem } from "@zenith-framework/core";
-import { HttpServer } from "./web/http-server";
-import { HttpRequestHandler } from "./web/http-request-handler";
+import { InjectOrb, Orb, ZenithSystem } from "@zenith-framework/core";
 import { ZenithWebConfig } from "./config/zenith-web.config";
+import { HttpRequestHandler } from "./web/http-request-handler";
+import { HttpServer } from "./web/http-server";
 import { ZenithOpenApiGenerator } from "./web/openapi/zenith-open-api.generator";
 
+@Orb()
 export class ZenithWebSystem extends ZenithSystem {
-    private config!: ZenithWebConfig;
-    private httpServer!: HttpServer;
-    private httpRequestHandler!: HttpRequestHandler;
-    private openApiGenerator!: ZenithOpenApiGenerator;
+    static readonly root = import.meta.dirname;
+
+    constructor(
+        @InjectOrb('ZenithWebConfig') private readonly config: ZenithWebConfig,
+        private readonly httpServer: HttpServer,
+        private readonly httpRequestHandler: HttpRequestHandler,
+        private readonly openApiGenerator: ZenithOpenApiGenerator,
+    ) {
+        super();
+    }
 
     async onStart(): Promise<void> {
-        this.config = this.container.get('ZenithWebConfig')!;
-        this.httpServer = this.container.get(HttpServer)!;
-        this.httpRequestHandler = this.container.get(HttpRequestHandler)!;
-        this.openApiGenerator = this.container.get(ZenithOpenApiGenerator)!;
-
         await this.httpRequestHandler.registerMiddlewares();
 
         await this.httpServer.scanAndRegisterRoutes();
@@ -24,15 +26,10 @@ export class ZenithWebSystem extends ZenithSystem {
             await this.openApiGenerator.generateOpenApiDocs();
         }
 
-
         await this.httpServer.start();
     }
 
     async onStop(): Promise<void> {
         this.httpServer.stop();
-    }
-
-    getRoot(): string {
-        return import.meta.dirname;
     }
 }
