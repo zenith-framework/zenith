@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "zenith",
@@ -55,20 +56,12 @@
       "name": "@examples/no-controller",
       "version": "1.0.0",
       "dependencies": {
-        "@zenith-framework/blaze": "0.1.7",
-        "@zenith-framework/core": "0.1.2",
-        "@zenith-framework/web": "0.1.5",
-        "class-validator": "^0.14.2",
-        "drizzle-orm": "^0.44.2",
-        "luxon": "^3.6.1",
-      },
-      "devDependencies": {
-        "@types/luxon": "^3.6.2",
+        "@zenith-framework/blaze": "workspace:*",
       },
     },
     "packages/blaze": {
       "name": "@zenith-framework/blaze",
-      "version": "0.2.7",
+      "version": "0.2.8",
       "dependencies": {
         "@zenith-framework/core": "^0.3.5",
         "@zenith-framework/web": "^0.4.2",
@@ -86,7 +79,7 @@
     },
     "packages/web": {
       "name": "@zenith-framework/web",
-      "version": "0.4.2",
+      "version": "0.4.4",
       "dependencies": {
         "@zenith-framework/core": "^0.3.4",
         "chalk": "^5.4.1",
@@ -503,12 +496,6 @@
     "@eslint/eslintrc/globals": ["globals@14.0.0", "", {}, "sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ=="],
 
     "@eslint/plugin-kit/@eslint/core": ["@eslint/core@0.15.1", "", { "dependencies": { "@types/json-schema": "^7.0.15" } }, "sha512-bkOp+iumZCCbt1K1CmWf0R9pM5yKpDv+ZXtvSyQpudrI9kuFLp+bM2WOPXImuD/ceQuaa8f5pj93Y7zyECIGNA=="],
-
-    "@examples/no-controller/@zenith-framework/blaze": ["@zenith-framework/blaze@0.1.7", "", { "dependencies": { "@zenith-framework/core": "0.1.2", "@zenith-framework/web": "0.1.5" } }, "sha512-LOw5PYuWeM3d37pDApUKOytNHZC0MT8+uUQpGld4BlLiwcVRdlRfyaAZ+tzrz2w26meC/GSyxhY4LqHxD9Q5pw=="],
-
-    "@examples/no-controller/@zenith-framework/core": ["@zenith-framework/core@0.1.2", "", { "dependencies": { "reflect-metadata": "^0.2.2", "winston": "^3.17.0" } }, "sha512-364wVZc8cTuk4/rhR7Zuuq003SrAHGnvjzRro+/FCNTFXs/ZLUgXOTGs7CnQIurUIFuXjQ/2OYHmR7RXZwTfgA=="],
-
-    "@examples/no-controller/@zenith-framework/web": ["@zenith-framework/web@0.1.5", "", { "dependencies": { "@zenith-framework/core": "0.1.2" } }, "sha512-azuHkmHl8JQU7UTcaIc1tGk3PUdZSl/LaRwlJkUrTvJ9KQV2ggfo4docgZxDuSOmHlPP4NO5iaANhh08or3QnA=="],
 
     "@humanfs/node/@humanwhocodes/retry": ["@humanwhocodes/retry@0.3.1", "", {}, "sha512-JBxkERygn7Bv/GbN5Rv8Ul6LVknS+5Bp6RgDC/O8gEBU/yeH5Ui5C/OlWrTb6qct7LjjfT6Re2NxB0ln0yYybA=="],
 
