@@ -55,6 +55,8 @@ export class Zenith {
         this.logger.info(`Registered config ${chalk.blue(orb.name)} using ${chalk.blue((orb.value as any).name)}`);
       });
 
+      await this.container.initOrbs();
+
       this.registerShutdownHooks();
 
       await this.startSystems();
@@ -90,6 +92,8 @@ export class Zenith {
           this.logger.error(`Error stopping ${system.constructor.name}: ${error instanceof Error ? error.stack : String(error)}`);
         }
       }
+      await this.container.destroyOrbs();
+
       this.logger.info(`Shutting down`);
       process.exit(0);
     };

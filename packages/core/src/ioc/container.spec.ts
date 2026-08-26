@@ -7,6 +7,7 @@ import { Orb } from '../decorators/orb';
 import { ZENITH_ORB_TYPE_CONFIG } from '../decorators/metadata-keys';
 import { OrbContainer } from './container';
 import { CyclicDependencyError } from './cyclic-dependencies.error';
+import type { OnOrbDestroy, OnOrbInit } from './orb-lifecycle';
 
 describe('OrbContainer', () => {
     let container: OrbContainer;
@@ -377,6 +378,169 @@ describe('OrbContainer', () => {
             class NoDependencies { }
 
             expect(() => container.registerOrb(NoDependencies)).not.toThrow();
+        });
+    });
+
+    describe('lifecycle', () => {
+        it('runs onInit in dependency order', async () => {
+            const initialised: string[] = [];
+
+            @Orb()
+            class Database implements OnOrbInit {
+                async onInit() {
+                    initialised.push('Database');
+                }
+            }
+
+            @Orb()
+            class Repository implements OnOrbInit {
+                constructor(readonly database: Database) { }
+                async onInit() {
+                    initialised.push('Repository');
+                }
+            }
+
+            @Orb()
+            class Service implements OnOrbInit {
+                constructor(readonly repository: Repository) { }
+                async onInit() {
+                    initialised.push('Service');
+                }
+            }
+
+            container.registerOrb(Service);
+            container.registerOrb(Repository);
+            container.registerOrb(Database);
+            container.instanciateOrbs();
+            await container.initOrbs();
+
+            expect(initialised).toEqual(['Database', 'Repository', 'Service']);
+        });
+
+        it('awaits asynchronous initialisation before moving on', async () => {
+            const events: string[] = [];
+
+            @Orb()
+            class SlowDependency implements OnOrbInit {
+                ready = false;
+                async onInit() {
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                    this.ready = true;
+                    events.push('dependency ready');
+                }
+            }
+
+            @Orb()
+            class Dependent implements OnOrbInit {
+                constructor(readonly slow: SlowDependency) { }
+                async onInit() {
+                    events.push(`dependent sees ready=${this.slow.ready}`);
+                }
+            }
+
+            container.registerOrb(SlowDependency);
+            container.registerOrb(Dependent);
+            container.instanciateOrbs();
+            await container.initOrbs();
+
+            expect(events).toEqual(['dependency ready', 'dependent sees ready=true']);
+        });
+
+        it('aborts startup when onInit throws', async () => {
+            @Orb()
+            class BrokenOnInit implements OnOrbInit {
+                async onInit() {
+                    throw new Error('could not connect');
+                }
+            }
+
+            container.registerOrb(BrokenOnInit);
+            container.instanciateOrbs();
+
+            await expect(container.initOrbs()).rejects.toThrow('could not connect');
+        });
+
+        it('runs onDestroy in reverse initialisation order', async () => {
+            const destroyed: string[] = [];
+
+            @Orb()
+            class Pool implements OnOrbDestroy {
+                async onDestroy() {
+                    destroyed.push('Pool');
+                }
+            }
+
+            @Orb()
+            class Consumer implements OnOrbDestroy {
+                constructor(readonly pool: Pool) { }
+                async onDestroy() {
+                    destroyed.push('Consumer');
+                }
+            }
+
+            container.registerOrb(Pool);
+            container.registerOrb(Consumer);
+            container.instanciateOrbs();
+            await container.initOrbs();
+            await container.destroyOrbs();
+
+            expect(destroyed).toEqual(['Consumer', 'Pool']);
+        });
+
+        it('keeps destroying orbs after one of them fails', async () => {
+            const destroyed: string[] = [];
+
+            @Orb()
+            class Innermost implements OnOrbDestroy {
+                async onDestroy() {
+                    destroyed.push('Innermost');
+                }
+            }
+
+            @Orb()
+            class Failing implements OnOrbDestroy {
+                constructor(readonly innermost: Innermost) { }
+                async onDestroy() {
+                    throw new Error('teardown blew up');
+                }
+            }
+
+            container.registerOrb(Innermost);
+            container.registerOrb(Failing);
+            container.instanciateOrbs();
+
+            await expect(container.destroyOrbs()).resolves.toBeUndefined();
+            expect(destroyed).toEqual(['Innermost']);
+        });
+
+        it('destroys orbs registered after startup first', async () => {
+            const destroyed: string[] = [];
+
+            @Orb()
+            class BootTime implements OnOrbDestroy {
+                async onDestroy() {
+                    destroyed.push('BootTime');
+                }
+            }
+
+            container.registerOrb(BootTime);
+            container.instanciateOrbs();
+
+            container.registerOrb({ onDestroy: () => { destroyed.push('Late'); } }, { name: 'Late' });
+            await container.destroyOrbs();
+
+            expect(destroyed).toEqual(['Late', 'BootTime']);
+        });
+
+        it('ignores orbs that declare no lifecycle hooks', async () => {
+            @Orb()
+            class Plain { }
+
+            container.registerOrb(Plain);
+            container.instanciateOrbs();
+
+            await expect(container.initOrbs()).resolves.toBeUndefined();
+            await expect(container.destroyOrbs()).resolves.toBeUndefined();
         });
     });
 
