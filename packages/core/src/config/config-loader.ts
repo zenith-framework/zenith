@@ -48,7 +48,7 @@ export class ConfigLoader {
                 Object.assign(values, dotenv.parse(fileContent));
                 this.logger.info(`Applying config from ${bunFile.name}`);
             } catch (error) {
-                this.logger.error(`Error loading config from ${file}: ${error}`);
+                this.logger.error(`Error loading config from ${file}: ${error instanceof Error ? error.stack : String(error)}`);
             }
         }
 

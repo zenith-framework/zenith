@@ -30,6 +30,6 @@ export class ZenithWebSystem extends ZenithSystem {
     }
 
     async onStop(): Promise<void> {
-        this.httpServer.stop();
+        await this.httpServer.stop();
     }
 }

@@ -1,7 +1,7 @@
 import winston from "winston";
 
 const logFormat = winston.format.printf(({ level, message, label, timestamp }) => {
-  return `${timestamp} [${label}] ${level}: ${message}`;
+  return `${String(timestamp)} [${String(label)}] ${level}: ${String(message)}`;
 });
 
 export const zenithLogger = (label: string) => winston.createLogger({

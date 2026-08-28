@@ -1,4 +1,4 @@
-import { ZENITH_WEB_DEFAULT_GENERATE_OPEN_API_DOCS, ZENITH_WEB_DEFAULT_GLOBAL_ROUTES_PREFIX, ZENITH_WEB_DEFAULT_HTTP_SERVER_PORT } from "./config-keys";
+import { ZENITH_WEB_DEFAULT_GENERATE_OPEN_API_DOCS, ZENITH_WEB_DEFAULT_GLOBAL_ROUTES_PREFIX, ZENITH_WEB_DEFAULT_HTTP_SERVER_PORT, ZENITH_WEB_DEFAULT_SHUTDOWN_TIMEOUT_MS } from "./config-keys";
 
 /**
  * Base class for the web system configuration.
@@ -18,5 +18,12 @@ export abstract class ZenithWebConfig {
 
     generateOpenApiDocs(): boolean {
         return ZENITH_WEB_DEFAULT_GENERATE_OPEN_API_DOCS;
+    }
+
+    /**
+     * How long shutdown waits for in-flight requests before closing connections anyway.
+     */
+    shutdownTimeoutMs(): number {
+        return ZENITH_WEB_DEFAULT_SHUTDOWN_TIMEOUT_MS;
     }
 }

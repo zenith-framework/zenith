@@ -18,6 +18,22 @@ function methodOf(controllerInstance: ControllerInstance, name: string): RouteHa
     return (controllerInstance as Record<string, RouteHandler | undefined>)[name];
 }
 
+/** Grace period for handlers to unwind after their connections have been severed. */
+const FORCE_CLOSE_GRACE_MS = 1_000;
+
+/** Resolves true when `work` settled first, false when the timeout won. */
+async function withTimeout(work: Promise<void>, timeoutMs: number): Promise<boolean> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+        return await Promise.race([
+            work.then(() => true),
+            new Promise<boolean>(resolve => { timer = setTimeout(() => resolve(false), timeoutMs); }),
+        ]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 @Orb()
 export class HttpServer {
     private readonly logger = webSystemLogger;
@@ -36,11 +52,11 @@ export class HttpServer {
         this.logger.info("Registering routes");
         const controllers = this.container.getOrbsByType<ControllerInstance>(ZENITH_ORB_TYPE_CONTROLLER);
         for (const controller of controllers) {
-            await this.registerController(controller);
+            this.registerController(controller);
         }
     }
 
-    async registerController(controller: OrbWrapper<ControllerInstance>) {
+    registerController(controller: OrbWrapper<ControllerInstance>) {
         const globalRoutesPrefix = this.config.globalRoutesPrefix() ?? '';
         const controllerInstance = controller.getInstance();
         if (!controllerInstance) {
@@ -82,7 +98,7 @@ export class HttpServer {
         }
     }
 
-    async registerRoute(fullPath: string, method: RouteMethod, routing: ZenithRequestRouting) {
+    registerRoute(fullPath: string, method: RouteMethod, routing: ZenithRequestRouting) {
         const sanitizedFullPath = '/' + sanitizePath(fullPath);
         const existingHandlers = this.routeHandlers[sanitizedFullPath] || {} as Record<RouteMethod, BunRouteHandler>;
         existingHandlers[method] = (req: BunRequest) => this.httpRequestHandler.handleRequest({
@@ -133,8 +149,38 @@ export class HttpServer {
         this.logger.info(`Server running on port ${this.server?.port}`);
     }
 
-    stop() {
-        this.server?.stop();
+    /**
+     * Stops accepting connections and waits for in-flight requests to finish.
+     *
+     * Bun's `stop()` is asynchronous: it resolves once the last request has been served.
+     * Awaiting it is what makes shutdown ordering mean anything, since orbs are only
+     * destroyed once the systems have stopped. A handler that never settles would
+     * otherwise hold the process open forever, so the drain is bounded, then forced.
+     */
+    async stop(): Promise<void> {
+        const server = this.server;
+        if (!server) {
+            return;
+        }
+        this.server = undefined;
+
+        const timeoutMs = this.config.shutdownTimeoutMs();
+        if (await withTimeout(server.stop(), timeoutMs)) {
+            this.logger.info('Server stopped, in-flight requests drained');
+            return;
+        }
+
+        this.logger.warn(`Server did not drain within ${timeoutMs}ms, closing active connections`);
+        // `stop(true)` severs the sockets at once, but its promise still waits on the
+        // handlers behind them. Bound it too, rather than trading one hang for another.
+        if (!await withTimeout(server.stop(true), FORCE_CLOSE_GRACE_MS)) {
+            this.logger.warn('Connections closed while request handlers were still running');
+        }
+    }
+
+    /** The port the server is listening on, once {@link start} has run. */
+    get port(): number | undefined {
+        return this.server?.port;
     }
 
     getRoutes(): Record<string, Record<RouteMethod, ZenithRequestRouting>> {

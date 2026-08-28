@@ -9,4 +9,14 @@ export class TodoController {
     getTodos() {
         return { todos: this.todoRepository.findAll() };
     }
+
+    /**
+     * Stands in for a request that is still running when a SIGTERM arrives. Shutdown
+     * waits for it to finish before the pool it depends on is closed.
+     */
+    @Get('/slow')
+    async getTodosSlowly() {
+        await Bun.sleep(500);
+        return { todos: this.todoRepository.findAll() };
+    }
 }
