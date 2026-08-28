@@ -1,3 +1,7 @@
+// bun-types declares `expect(...).rejects` as the plain synchronous Matchers interface,
+// so matchers on it look like they return void. They return promises at runtime, and
+// dropping the await would let a failing assertion pass unnoticed.
+/* oxlint-disable typescript/await-thenable */
 import 'reflect-metadata';
 import { beforeEach, describe, expect, it } from 'bun:test';
 

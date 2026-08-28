@@ -8,8 +8,8 @@
   "scripts": {
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "lint": "oxlint",
-    "lint:fix": "oxlint --fix",
+    "lint": "oxlint --type-aware",
+    "lint:fix": "oxlint --type-aware --fix",
     "typecheck": "tsc --noEmit",
     "example": "scripts/run-example.sh"
   },
@@ -17,6 +17,7 @@
     "@types/bun": "^1.2.17",
     "@types/semver": "^7.8.0",
     "oxlint": "^1.80.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "prettier": "^3.6.1",
     "typescript": "^7.0.2"
   },

@@ -110,7 +110,7 @@ export class ZenithOpenApiGenerator {
         const openApiControllerMetadata: ControllerMetadata = { path: '/openapi' };
         Reflect.defineMetadata(ZENITH_CONTROLLER_METADATA, openApiControllerMetadata, openApiController);
         const openApiControllerOrb = this.container.registerOrb<OpenApiController>(openApiController);
-        await this.httpServer.registerController(openApiControllerOrb);
+        this.httpServer.registerController(openApiControllerOrb);
     }
 
     private openApiSchemaForType(type: unknown): OpenApiSchema {

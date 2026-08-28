@@ -1,17 +1,13 @@
 import { Config } from "@zenith-framework/core";
-import type { ZenithWebConfig } from "@zenith-framework/web";
+import { ZenithWebConfig } from "@zenith-framework/web";
 
 @Config('ZenithWebConfig')
-export class WebConfig implements ZenithWebConfig {
-    globalRoutesPrefix(): string {
-        return '/';
-    }
-
-    httpServerPort(): number {
+export class WebConfig extends ZenithWebConfig {
+    override httpServerPort(): number {
         return 3001;
     }
 
-    generateOpenApiDocs(): boolean {
+    override generateOpenApiDocs(): boolean {
         return true;
     }
 }
