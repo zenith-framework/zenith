@@ -1,3 +1,4 @@
+import type { CorsOptions } from "../web/cors/cors-options";
 import { ZENITH_WEB_DEFAULT_GENERATE_OPEN_API_DOCS, ZENITH_WEB_DEFAULT_GLOBAL_ROUTES_PREFIX, ZENITH_WEB_DEFAULT_HTTP_SERVER_PORT, ZENITH_WEB_DEFAULT_SHUTDOWN_TIMEOUT_MS } from "./config-keys";
 
 /**
@@ -18,6 +19,13 @@ export abstract class ZenithWebConfig {
 
     generateOpenApiDocs(): boolean {
         return ZENITH_WEB_DEFAULT_GENERATE_OPEN_API_DOCS;
+    }
+
+    /**
+     * Cross-origin access rules, or undefined to send no CORS headers at all.
+     */
+    cors(): CorsOptions | undefined {
+        return undefined;
     }
 
     /**

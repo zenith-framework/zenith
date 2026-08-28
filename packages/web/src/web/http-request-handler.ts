@@ -38,7 +38,8 @@ export class HttpRequestHandler {
     ) {
     }
 
-    async registerMiddlewares() {
+    /** Indexes the request decoders and response encoders by the mime types they declare. */
+    async registerCodecs() {
         const requestDecoders = this.container.getOrbsByType<RequestDecoder>(ZENITH_ORB_TYPE_REQUEST_DECODER);
 
         for (const requestDecoder of requestDecoders) {
@@ -250,7 +251,11 @@ export class HttpRequestHandler {
         return undefined;
     }
 
-    private async mapErrorToZenithHttpResponse(error: unknown): Promise<ZenithHttpResponse> {
+    /**
+     * Maps a thrown value to a response, going through any registered exception
+     * handler. Public so middleware failures land on the same handlers as route ones.
+     */
+    async mapErrorToZenithHttpResponse(error: unknown): Promise<ZenithHttpResponse> {
         if (error instanceof HttpException) {
             return {
                 status: error.status,

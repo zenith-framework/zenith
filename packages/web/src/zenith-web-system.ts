@@ -2,6 +2,7 @@ import { InjectOrb, Orb, ZenithSystem } from "@zenith-framework/core";
 import { ZenithWebConfig } from "./config/zenith-web.config";
 import { HttpRequestHandler } from "./web/http-request-handler";
 import { HttpServer } from "./web/http-server";
+import { MiddlewarePipeline } from "./web/middleware-pipeline";
 import { ZenithOpenApiGenerator } from "./web/openapi/zenith-open-api.generator";
 
 @Orb()
@@ -12,13 +13,15 @@ export class ZenithWebSystem extends ZenithSystem {
         @InjectOrb('ZenithWebConfig') private readonly config: ZenithWebConfig,
         private readonly httpServer: HttpServer,
         private readonly httpRequestHandler: HttpRequestHandler,
+        private readonly middlewarePipeline: MiddlewarePipeline,
         private readonly openApiGenerator: ZenithOpenApiGenerator,
     ) {
         super();
     }
 
     async onStart(): Promise<void> {
-        await this.httpRequestHandler.registerMiddlewares();
+        await this.httpRequestHandler.registerCodecs();
+        this.middlewarePipeline.registerMiddlewares();
 
         await this.httpServer.scanAndRegisterRoutes();
 

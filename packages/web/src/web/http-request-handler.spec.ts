@@ -66,7 +66,7 @@ describe('HttpRequestHandler', () => {
         }
         container.instanciateOrbs();
         handler = new HttpRequestHandler(container, container.get('Validator')!);
-        await handler.registerMiddlewares();
+        await handler.registerCodecs();
     }
 
     beforeEach(() => {
