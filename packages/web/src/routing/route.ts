@@ -27,6 +27,21 @@ type PathParam<S extends string> =
 
 type PathParams<S extends string> = { [K in PathParam<S>]: string };
 
+/**
+ * The schemas of a route declared without any.
+ *
+ * Deliberately `undefined` rather than `never` per field: a conditional type
+ * distributes over `never` and collapses to `never`, which would leave a
+ * schema-less handler unable to read its own path parameters.
+ */
+export type NoSchemas = {
+    params?: undefined;
+    query?: undefined;
+    body?: undefined;
+    response?: undefined;
+    status?: undefined;
+};
+
 export interface RouteSchemas {
     /** Overrides the params inferred from the path, for coercion or extra rules. */
     params?: Schema;
@@ -63,7 +78,7 @@ function define<M extends RouteMethod>(method: M) {
     ): RouteDefinition;
     function route<P extends string>(
         path: P,
-        handler: (context: RouteContext<P, Record<string, never>>) => unknown,
+        handler: (context: RouteContext<P, NoSchemas>) => unknown,
     ): RouteDefinition;
     function route(path: string, schemasOrHandler: unknown, maybeHandler?: unknown): RouteDefinition {
         const hasSchemas = typeof schemasOrHandler !== 'function';

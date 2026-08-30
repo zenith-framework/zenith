@@ -83,7 +83,7 @@ describe('RouterRegistrar', () => {
 
         expect(response.status).toBe(400);
         // A boolean validator can only say "invalid"; the schema knows the field.
-        expect((await response.json()).details).toContain('name');
+        expect(((await response.json()) as { details: string }).details).toContain('name');
         await server.stop();
     });
 
@@ -127,7 +127,7 @@ describe('RouterRegistrar', () => {
         const response = await fetch(`http://localhost:${server.port}/todos/9`);
 
         expect(response.status).toBe(404);
-        expect((await response.json()).details).toBe('no such todo');
+        expect(((await response.json()) as { details: string }).details).toBe('no such todo');
         await server.stop();
     });
 
