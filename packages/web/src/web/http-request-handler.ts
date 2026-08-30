@@ -2,7 +2,8 @@ import { InjectOrb, Orb, OrbContainer, OrbWrapper } from "@zenith-framework/core
 import type { ZenithRequest } from "./zenith-request";
 import { webSystemLogger } from "../logger";
 import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_ROUTE_ARGS, ZENITH_EXCEPTION_HANDLER_EXCEPTIONS, ZENITH_MIME_TYPES, ZENITH_ORB_TYPE_EXCEPTION_HANDLER, ZENITH_ORB_TYPE_REQUEST_DECODER, ZENITH_ORB_TYPE_RESPONSE_ENCODER } from "../decorators/metadata-keys";
-import type { ControllerMetadata, RouteParamMetadata } from "../decorators";
+import type { ControllerMetadata } from "../decorators/controller.decorator";
+import type { RouteParamMetadata } from "../decorators/route-param";
 import type { Route, RouteMethod } from "./route";
 import { BadRequestException, HttpException, InternalServerErrorException, UnauthorizedException, UnsupportedMediaTypeException } from "./http-exception";
 import type { ResponseEncoder } from "./response-encoder";
