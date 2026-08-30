@@ -11,7 +11,7 @@ import type { Route, RouteMethod } from "./route";
 import type { ControllerInstance, RouteHandler, ZenithRequestRouting } from "./zenith-request-routing";
 
 /** What Bun's `serve({ routes })` expects for each method on a path. */
-type BunRouteHandler = (req: BunRequest) => Response | Promise<Response>;
+export type BunRouteHandler = (req: BunRequest) => Response | Promise<Response>;
 
 /** Reaches a controller method by name. Returns undefined when there is no such method. */
 function methodOf(controllerInstance: ControllerInstance, name: string): RouteHandler | undefined {
@@ -176,6 +176,18 @@ export class HttpServer {
         if (!await withTimeout(server.stop(true), FORCE_CLOSE_GRACE_MS)) {
             this.logger.warn('Connections closed while request handlers were still running');
         }
+    }
+
+    /**
+     * Mounts a handler on a path directly, for routes that do not go through the
+     * controller pipeline.
+     */
+    registerHandler(fullPath: string, method: RouteMethod, handler: BunRouteHandler) {
+        const sanitizedFullPath = '/' + sanitizePath(fullPath);
+        const existingHandlers = this.routeHandlers[sanitizedFullPath] || {} as Record<RouteMethod, BunRouteHandler>;
+        existingHandlers[method] = handler;
+        this.routeHandlers[sanitizedFullPath] = existingHandlers;
+        this.logger.info(`Registered route: ${method} ${sanitizedFullPath}`);
     }
 
     /** The port the server is listening on, once {@link start} has run. */

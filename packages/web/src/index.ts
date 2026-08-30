@@ -22,4 +22,7 @@ export * from './web/json-response.encoder';
 export * from './web/request-guard';
 export * from './web/zod/create-zod-dto';
 
+export * from './routing/route';
+export * from './routing/router-registrar';
+
 export * from './zenith-web-system';

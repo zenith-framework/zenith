@@ -11,6 +11,7 @@ import { hasOnDestroy, hasOnInit } from "./orb-lifecycle";
 import { isReservedOrbName } from "./reserved-orb-names";
 
 export class OrbContainer {
+  private readonly modules: ZenithModule[] = [];
   private readonly logger = zenithLogger('OrbContainer');
   private readonly orbs: Map<string, OrbWrapper<unknown>>;
   /** Order in which orbs were constructed: dependencies before their dependents. */
@@ -282,8 +283,17 @@ export class OrbContainer {
 
   registerModules(modules: ZenithModule[]) {
     for (const module of modules) {
+      this.modules.push(module);
       this.registerModule(module);
     }
+  }
+
+  /**
+   * Every module the scan loaded. Orbs are picked out of these automatically; systems
+   * use this to find declarations that are not orbs, such as exported routers.
+   */
+  getModules(): readonly ZenithModule[] {
+    return this.modules;
   }
 
   registerModule(module: ZenithModule) {
