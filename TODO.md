@@ -6,10 +6,10 @@
     - [ ] Load variables from env (process.env)
 
 **Web:**
-- [ ] Request context (using ALS)
-- [ ] Middlewares
+- [x] Request context (using ALS)
+- [x] Middlewares
 - [ ] Security concerns (using middlewares)
-    - [ ] CORS
+    - [x] CORS
     - [ ] XSS
     - [ ] CSRF
     - [ ] HPP

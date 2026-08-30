@@ -7,6 +7,8 @@ import { ZENITH_CONTROLLER_METADATA, ZENITH_CONTROLLER_ROUTE, ZENITH_CONTROLLER_
 import { webSystemLogger } from "../logger";
 import { sanitizePath } from "../utils/path.utils";
 import { HttpRequestHandler } from "./http-request-handler";
+import { MiddlewarePipeline } from "./middleware-pipeline";
+import { MethodNotAllowedException, NotFoundException } from "./http-exception";
 import type { Route, RouteMethod } from "./route";
 import type { ControllerInstance, RouteHandler, ZenithRequestRouting } from "./zenith-request-routing";
 
@@ -44,6 +46,7 @@ export class HttpServer {
     constructor(
         private readonly container: OrbContainer,
         private readonly httpRequestHandler: HttpRequestHandler,
+        private readonly middlewarePipeline: MiddlewarePipeline,
         @InjectOrb('ZenithWebConfig') private readonly config: ZenithWebConfig,
     ) {
     }
@@ -101,11 +104,11 @@ export class HttpServer {
     registerRoute(fullPath: string, method: RouteMethod, routing: ZenithRequestRouting) {
         const sanitizedFullPath = '/' + sanitizePath(fullPath);
         const existingHandlers = this.routeHandlers[sanitizedFullPath] || {} as Record<RouteMethod, BunRouteHandler>;
-        existingHandlers[method] = (req: BunRequest) => this.httpRequestHandler.handleRequest({
+        existingHandlers[method] = (req: BunRequest) => this.middlewarePipeline.run(req, () => this.httpRequestHandler.handleRequest({
             bunRequest: req,
             fullPath: sanitizedFullPath,
             routing,
-        });
+        }));
 
         this.routingMap[sanitizedFullPath] = this.routingMap[sanitizedFullPath] ?? {} as Record<RouteMethod, ZenithRequestRouting>;
         this.routingMap[sanitizedFullPath][method] = routing;
@@ -145,6 +148,9 @@ export class HttpServer {
         this.server = serve({
             port: this.config.httpServerPort(),
             routes: this.routeHandlers,
+            // Bun falls through to `fetch` for any path/method it has no route for,
+            // which is how the middlewares get to see preflights, 404s and 405s.
+            fetch: (req: Request) => this.middlewarePipeline.run(req, () => this.handleUnmatched(req)),
         });
         this.logger.info(`Server running on port ${this.server?.port}`);
     }
@@ -176,6 +182,25 @@ export class HttpServer {
         if (!await withTimeout(server.stop(true), FORCE_CLOSE_GRACE_MS)) {
             this.logger.warn('Connections closed while request handlers were still running');
         }
+    }
+
+    /**
+     * Terminal step for requests no route claimed. A path that exists under another
+     * method is a 405 rather than a 404, which is both correct and a real hint when
+     * a route is registered but the method is not.
+     */
+    private handleUnmatched(request: Request): Promise<Response> {
+        const path = '/' + sanitizePath(new URL(request.url).pathname);
+        const handlersForPath = this.routeHandlers[path];
+        const exception = handlersForPath
+            ? new MethodNotAllowedException(`${request.method} is not allowed on ${path}`)
+            : new NotFoundException(`No route matches ${request.method} ${path}`);
+
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (handlersForPath) {
+            headers['Allow'] = Object.keys(handlersForPath).join(', ');
+        }
+        return Promise.resolve(new Response(JSON.stringify(exception), { status: exception.status, headers }));
     }
 
     /** The port the server is listening on, once {@link start} has run. */
