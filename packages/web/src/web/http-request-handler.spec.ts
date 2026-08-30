@@ -4,7 +4,11 @@ import { OrbContainer } from '@zenith-framework/core';
 import { z } from 'zod';
 import type { BunRequest } from 'bun';
 
-import { Body, Controller, Get, HttpCode, Post, Query, RouteParam, Validated } from '../decorators';
+import { Body, Query, RouteParam } from '../decorators/route-param';
+import { Controller } from '../decorators/controller.decorator';
+import { Get, Post } from '../decorators/http-method.decorator';
+import { HttpCode } from '../decorators/http-code.decorator';
+import { Validated } from '../decorators/validated.decorator';
 import { Catch, ExceptionHandler } from '../decorators/exception-handler.decorator';
 import { Guards } from '../decorators/guards.decorator';
 import { HttpRequestHandler } from './http-request-handler';

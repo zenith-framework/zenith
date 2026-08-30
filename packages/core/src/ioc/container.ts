@@ -2,7 +2,7 @@ import { ZENITH_ORB_INJECT_NAME, ZENITH_ORB_INJECT_OPTIONS, ZENITH_ORB_PROVIDE, 
 import { OrbWrapper } from "./orb-wrapper";
 import type { ZenithModule } from "../zenith-module";
 import { zenithLogger } from "../logger";
-import type { InjectOrbOptions } from "../decorators";
+import type { InjectOrbOptions } from "../decorators/inject-orb";
 import { CyclicDependencyError } from "./cyclic-dependencies.error";
 import chalk from "chalk";
 import { getInjectableOrbName } from "./utils";
